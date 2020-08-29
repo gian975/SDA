@@ -47,21 +47,39 @@ y_pred = predict(model, newdata = t_s)
 # ==============================================================
 
 my_data.cor = cor(my_data, use="pairwise.complete.obs")
-round(my_data.cor, 2)
+round(my_data.cor, 2);
+
+library(corrplot)
+
+res <- cor(my_data, use="pairwise.complete.obs")
+round(res, 2)
+dev.new()
+plot.new()
+dev.off()
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
+
 car::vif(model)
 
 # DOPO LE RIFLESSIONI: 
-tr_s_reduced_collinearity <- tr_s[,c(1,2,3,4,5,7,9,10)]
 model_reduced_collinearity <- lm(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-             fuel_type + extra_urban_metric + noise_level, data = tr_s_reduced_collinearity)
+             fuel_type + extra_urban_metric + noise_level, data = tr_s)
 summary(model_reduced_collinearity)
 
-
-t_s_reduced_collinearity <- t_s[,c(1,2,3,4,5,7,9,10)]
-y_pred = predict(model_reduced_collinearity, newdata = t_s_reduced_collinearity)
+y_pred = predict(model_reduced_collinearity, newdata = t_s)
 
 tr_s_reduced_collinearity.cor = cor(tr_s_reduced_collinearity, use="pairwise.complete.obs")
-round(tr_s_reduced_collinearity.cor, 2)
+round(tr_s_reduced_collinearity.cor, 2);
+
+library(corrplot)
+
+res <- cor(my_data, use="pairwise.complete.obs")
+round(res, 2)
+dev.new()
+plot.new()
+dev.off()
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
 
 # ==============================================================
 # 
