@@ -1,16 +1,18 @@
-data_complete <- read.csv("/dataset/data_complete.csv", header=TRUE)
+setwd("~/GitHub/SDA")
+data_complete <- read.csv("dataset/data_complete.csv", header=TRUE)
 
 head(data_complete)
 names(data_complete)
+
 # PREPREOCCESSING FOR ENCODING CATEGORICAL DATA
 # data_complete$Colonna = factor(data_complete$Colonna, levels = c('', '', ''),
 #                               labels = c(1,2,3))
 
-install.packages('caTools')
-library(caTools)
-split = sample.split(data_complete$co2_emission, SplitRatio = 0.8)
-tr_s = subset(data_complete, split == TRUE)
-t_s = subset(data_complete, split == FALSE)
+#install.packages('caTools')
+#library(caTools)
+#split = sample.split(data_complete$co2_emission, SplitRatio = 0.8)
+#tr_s = subset(data_complete, split == TRUE)
+#t_s = subset(data_complete, split == FALSE)
 
 attach(data_complete)
 
@@ -28,8 +30,14 @@ plot(co2_emission, combined_metric)
 plot(co2_emission, noise_level)
 plot(co2_emission, fuel_cost_6000_miles)
 
-model <- lm(co2_emission ~ ., data = tr_s)
+my_data <- data_complete[,c(3,7,8,9,10,11,12,13,14,15,16)]
+model <- lm(co2_emission ~ ., data = my_data)
 summary(model)
+
+library(MASS)
+step.model <- stepAIC(model, direction = "both", 
+                      trace = FALSE)
+summary(step.model)
 y_pred = predict(model, newdata = t_s)
 
 # Guardo la correlazione per eliminare i predittori altamente correlati
