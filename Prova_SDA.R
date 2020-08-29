@@ -1,4 +1,4 @@
-data_complete <- read.csv("C:/Users/Utente/Desktop/data_complete.csv", header=TRUE)
+data_complete <- read.csv("data_complete.csv", header=TRUE)
 
 head(data_complete)
 names(data_complete)
