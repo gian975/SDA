@@ -8,11 +8,12 @@ names(data_complete)
 # data_complete$Colonna = factor(data_complete$Colonna, levels = c('', '', ''),
 #                               labels = c(1,2,3))
 
-#install.packages('caTools')
-#library(caTools)
-#split = sample.split(data_complete$co2_emission, SplitRatio = 0.8)
-#tr_s = subset(data_complete, split == TRUE)
-#t_s = subset(data_complete, split == FALSE)
+install.packages('caTools')
+library(caTools)
+my_data <- data_complete[,c(3,7,8,9,10,11,12,13,14,15,16)]
+split = sample.split(my_data$co2_emission, SplitRatio = 0.8)
+tr_s = subset(my_data, split == TRUE)
+t_s = subset(my_data, split == FALSE)
 
 attach(data_complete)
 
@@ -30,28 +31,45 @@ plot(co2_emission, combined_metric)
 plot(co2_emission, noise_level)
 plot(co2_emission, fuel_cost_6000_miles)
 
-my_data <- data_complete[,c(3,7,8,9,10,11,12,13,14,15,16)]
-model <- lm(co2_emission ~ ., data = my_data)
-summary(model)
 
-library(MASS)
-step.model <- stepAIC(model, direction = "both", 
-                      trace = FALSE)
-summary(step.model)
+model <- lm(co2_emission ~ ., data = tr_s)
+summary(model)
 y_pred = predict(model, newdata = t_s)
 
-# Guardo la correlazione per eliminare i predittori altamente correlati
-my_data <- data_complete[,c(1,2,3,7,8,9,10,11,12,13,14,15,16)]
+# library(MASS)
+# step.model <- stepAIC(model, direction = "both", trace = FALSE)
+# summary(step.model)
+# y_pred = predict(model, newdata = t_s)
+
+
+# ==============================================================
+# COLLINEARITA' e CORRELAZIONE per eliminare qualche regressore: 
+# ==============================================================
+
 my_data.cor = cor(my_data, use="pairwise.complete.obs")
 round(my_data.cor, 2)
+car::vif(model)
+
+# DOPO LE RIFLESSIONI: 
+tr_s_reduced_collinearity <- tr_s[,c(1,2,3,4,5,7,9,10)]
+model_reduced_collinearity <- lm(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
+             fuel_type + extra_urban_metric + noise_level, data = tr_s_reduced_collinearity)
+summary(model_reduced_collinearity)
 
 
-fit1 <- lm(co2_emission ~ euro_standard + fuel_cost_6000_miles + fuel_type + engine_capacity + transmission_type
-           + noise_level, data = tr_s)
+t_s_reduced_collinearity <- t_s[,c(1,2,3,4,5,7,9,10)]
+y_pred = predict(model_reduced_collinearity, newdata = t_s_reduced_collinearity)
 
-my_data <- data_complete[,c(7,16,10,9,8,14)]
+tr_s_reduced_collinearity.cor = cor(tr_s_reduced_collinearity, use="pairwise.complete.obs")
+round(tr_s_reduced_collinearity.cor, 2)
 
-summary(fit1)
+# ==============================================================
+# 
+# ==============================================================
+
+
+
+
 
 confint(model, level=.95)
 
@@ -59,5 +77,14 @@ resid<- model$residuals
 hist(resid)
 qqnorm(resid)
 qqline(resid)
- 
-plot(model)
+ plot(model)
+
+
+
+
+
+
+
+
+
+
