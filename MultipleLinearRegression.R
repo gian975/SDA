@@ -45,10 +45,6 @@ y_pred = predict(model, newdata = t_s)
 # ==============================================================
 # COLLINEARITA' e CORRELAZIONE per eliminare qualche regressore: 
 # ==============================================================
-
-my_data.cor = cor(my_data, use="pairwise.complete.obs")
-round(my_data.cor, 2);
-
 library(corrplot)
 
 res <- cor(my_data, use="pairwise.complete.obs")
@@ -68,8 +64,8 @@ summary(model_reduced_collinearity)
 
 y_pred = predict(model_reduced_collinearity, newdata = t_s)
 
-tr_s_reduced_collinearity.cor = cor(tr_s_reduced_collinearity, use="pairwise.complete.obs")
-round(tr_s_reduced_collinearity.cor, 2);
+tr_s.cor = cor(tr_s, use="pairwise.complete.obs")
+round(tr_s.cor, 2);
 
 library(corrplot)
 
@@ -82,20 +78,48 @@ corrplot(res, type = "upper", order = "hclust",
          tl.col = "black", tl.srt = 45)
 
 # ==============================================================
-# 
+# STUDIO LINEARITA' attraverso i residui 
+# ==============================================================
+dev.new()
+plot(model_reduced_collinearity)
+
+# 1) I residui devono avere distribuzione gaussiana: 
+resid <- model_reduced_collinearity$residuals
+hist(resid)
+# è più o meno a forma di campana. 
+# Altrimenti si guarda il QQ-plot: se i residui seguono una linea retta allora essi sono normalmente distribuiti. 
+
+# ==============================================================
+# OMOSCHEDASTICITà: varianza costante nei dati
 # ==============================================================
 
+# si osserva attraverso il tracciamento di una linea orizzontale
+plot(model_reduced_collinearity)
+# Analisi: ipotesi di omoschedasticità è soddisfatta se dal grafico non si ha evidenza di diversi livelli di varianza e i punti sembrano essere
+# distributi in modo causale, in contrasto con la visualizzazione di un certo pattern. 
 
 
+# ==============================================================
+# RESIDUAL VS FITTED
+# ==============================================================
 
+# Osservando il grafico dei residui e dei valori fittati, si osserva un certo pattern lineare. Quindi, si può concludere che il modello non è
+# lineare e tale situazione è risolvibile o eliminando alcuni predittori o aggiungendo trasformazioni al modello. 
 
-confint(model, level=.95)
+# ==============================================================
+# QQ-Plot
+# ==============================================================
+
+# I quantili del modello seguono una distribuzione normale poichè non vi è molta deviazione dal normal QQ-plot. Sulla base del grafico Residual vs Leverage
+# si può vedere che alcuni punti dati sono raggruppati insieme, mentre si preferisce una loro distribuzione uniforme. 
+
+confint(model_reduced_collinearity, level=.95)
 
 resid<- model$residuals
 hist(resid)
 qqnorm(resid)
 qqline(resid)
- plot(model)
+plot(model)
 
 
 
