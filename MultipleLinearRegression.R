@@ -1,10 +1,13 @@
 setwd("~/GitHub/SDA")
+
 # ==============================================================
 # INSTALLATION: 
 # ==============================================================
 install.packages(c("caret", "tidyverse"))
-install.packages(corrplot)
+install.packages("corrplot")
 install.packages('caTools')
+install.packages('caret', dependencies = TRUE)
+install.packages("vctrs")
 
 # ==============================================================
 # IMPORT: 
@@ -13,8 +16,9 @@ library(corrplot)
 library(caTools)
 library(tidyverse)
 library(caret)
-
-
+library(ISLR)
+library(MASS)
+library(boot)
 data_complete <- read.csv("dataset/data_complete.csv", header=TRUE)
 
 head(data_complete)
@@ -33,13 +37,14 @@ names(data_complete)
 
 
 
+attach(data_complete)
 
 my_data <- data_complete[,c(3,7,8,9,10,11,12,13,14,15,16)]
 split = sample.split(my_data$co2_emission, SplitRatio = 0.8)
 tr_s = subset(my_data, split == TRUE)
 t_s = subset(my_data, split == FALSE)
 
-attach(data_complete)
+
 
 plot(co2_emission, year)
 plot(co2_emission, make)
@@ -67,7 +72,7 @@ confint(model, level=.95)
 # MODEL ASSUMPTION
 # ==============================================================
 # I residui devono avere distribuzione gaussiana: 
-resid <- model_reduced_collinearity$residuals
+resid <- model$residuals
 hist(resid)
 # Altrimenti si guarda il QQ-plot: se i residui seguono una linea retta allora essi sono normalmente distribuiti. 
 
@@ -106,9 +111,9 @@ plot(model)
 
 # Analisi: ipotesi di omoschedasticità è soddisfatta se dal grafico non si ha evidenza di diversi livelli di varianza e i punti sembrano essere
 # distributi in modo causale, in contrasto con la visualizzazione di un certo pattern. 
-residui<-model_reduced_collinearity$residuals
-yfit<-fitted(model_reduced_collinearity)
-plot(yfit, abs(residui), ylab="Residui", xlab="Fitted", main="Residui in valore assoluto vs fitted")
+
+yfit<-fitted(model)
+plot(yfit, abs(resid), ylab="Residui", xlab="Fitted", main="Residui in valore assoluto vs fitted")
 
 
 # ==============================================================
@@ -118,9 +123,55 @@ plot(yfit, abs(residui), ylab="Residui", xlab="Fitted", main="Residui in valore 
 
 # 4) Outliers: 
 # ==============================================================
-# COLLINEARITA' e CORRELAZIONE per eliminare qualche regressore: 
+# OUTLIERS: Analisi ed Eliminazione 
 # ==============================================================
 # L'analisi si effettua mediante l'utilizzo dei boxplot, i punti al di fuori del box sono considerati outliers (sotto determinate condizioni -> CODICE LUCA)
+
+plot.new()
+boxplot(tr_s)$co2_emission 
+
+##metodo IQR per trovare gli outlier:
+
+## restituzione del 25 esimo e 75 esimo percentile del set di dati 
+Q <- quantile(tr_s$engine_capacity, probs=c(.25, .75), na.rm = FALSE)
+
+##differenza del 75 esimo e del 25esimo percentile 
+iqr <- IQR(tr_s$engine_capacity)
+
+## ci calcoliamo gli intervalli oltre i quali tutti i punti sono outlier
+
+up <-  Q[2]+1*iqr # Upper Range  
+low<- Q[1]-1*iqr # Lower Range
+
+# ==============================================================
+#ELIMINAZIONE OUTLIER 
+# ==============================================================
+
+tr_s_outliers<- subset(tr_s, tr_s$engine_capacity> low & tr_s$engine_capacity< up)
+
+boxplot(tr_s_outliers)$co2_emission
+
+Q <- quantile(tr_s_outliers$fuel_cost_6000_miles, probs=c(.25, .75), na.rm = FALSE)
+
+##differenza del 75 esimo e del 25esimo percentile 
+iqr <- IQR(tr_s_outliers$fuel_cost_6000_miles)
+up <-  Q[2]+iqr # Upper Range  
+low<- Q[1]-iqr # Lower Range
+
+tr_s_outliers<- subset(tr_s_outliers, tr_s_outliers$fuel_cost_6000_miles> low & tr_s_outliers$fuel_cost_6000_miles< up)
+boxplot(tr_s_outliers)$co2_emission
+
+Q <- quantile(tr_s_outliers$noise_level, probs=c(.25, .75), na.rm = FALSE)
+iqr <- IQR(tr_s_outliers$noise_level)
+
+up <-  Q[2]+iqr # Upper Range  
+low <- Q[1]-iqr # Lower Range
+
+tr_s_outliers<- subset(tr_s_outliers, tr_s_outliers$noise_level> low & tr_s_outliers$noise_level< up)
+boxplot(tr_s_outliers)$co2_emission
+
+model_without_outliers <- lm(co2_emission ~ ., data = tr_s_outliers)
+summary(model_without_outliers)
 
 
 # 5) High Leverage Point -> DA VEDERE MEGLIO
@@ -144,11 +195,11 @@ dev.off()
 corrplot(res, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45)
 
-car::vif(model)
+car::vif(model_without_outliers)
 
 # DOPO LE RIFLESSIONI: sono stati eliminati i regressori che presentano un VIF oltre i 10 e che sono in correlazione con altri regressori con VIF minore di 10. 
 model_reduced_collinearity <- lm(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-             fuel_type + extra_urban_metric + noise_level, data = tr_s)
+             fuel_type + fuel_cost_6000_miles  + noise_level, data = eliminated)
 summary(model_reduced_collinearity)
 confint(model_reduced_collinearity, level=.95)
 
@@ -160,6 +211,14 @@ dev.off()
 corrplot(res, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45)
 
+# ==============================================================
+# STEP-WISE SELECTION 
+# ==============================================================
+
+step.model <- stepAIC(model_reduced_collinearity, direction = "both", scope = formula(model_reduced_collinearity), trace = FALSE)
+summary(step.model)
+step.model$anova
+confint(step.model, level=.95)
 
 # ==============================================================
 # k-FOLD CROSS VALIDATION 
@@ -167,8 +226,25 @@ corrplot(res, type = "upper", order = "hclust",
 
 train.control <- trainControl(method = "cv", number = 10)
 model_validation <- train(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-                            fuel_type + extra_urban_metric + noise_level, data = tr_s, method = "lm",
+                            fuel_type + fuel_cost_6000_miles + noise_level, data = eliminated, method = "lm",
                trControl = train.control)
+summary(model_validation)
+confint(model_validation, level=.95)
+
+# ==============================================================
+# TEST PREDICTION
+# ==============================================================
+
+y_pred_step_model = predict(step.model, newdata = t_s, interval = 'confidence')
+plot(y_pred_step_model)
+
+
+y_pred_validation = predict(model_validation, newdata = t_s, interval = 'confidence')
+plot(y_pred_validation)
+
+
+
+
 
 
 
