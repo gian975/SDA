@@ -32,9 +32,14 @@ combined_model_2<- lm(co2_emission ~ year + euro_standard + transmission_type +
 combined_model_3<- lm(co2_emission ~ year + transmission_type +
                         fuel_type + fuel_cost_6000_miles*combined_metric + noise_level, data = tr_s)
 
+
 plot(combined_model_1)
 plot(combined_model_2)
 plot(combined_model_3)
 
+
+car::vif(combined_model_1)
+car::vif(combined_model_2)
+car::vif(combined_model_3)
 
 

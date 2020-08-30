@@ -3,11 +3,12 @@ setwd("~/GitHub/SDA")
 # ==============================================================
 # INSTALLATION: 
 # ==============================================================
-install.packages(c("caret", "tidyverse"))
+install.packages("vctrs")
+install.packages("tidyverse")
 install.packages("corrplot")
 install.packages('caTools')
 install.packages('caret', dependencies = TRUE)
-install.packages("vctrs")
+
 
 # ==============================================================
 # IMPORT: 
@@ -19,6 +20,9 @@ library(caret)
 library(ISLR)
 library(MASS)
 library(boot)
+library(stringr)
+
+
 data_complete <- read.csv("dataset/data_complete.csv", header=TRUE)
 
 head(data_complete)
@@ -29,12 +33,10 @@ names(data_complete)
 #                               labels = c(1,2,3))
 
 
-
 # library(MASS)
 # step.model <- stepAIC(model, direction = "both", trace = FALSE)
 # summary(step.model)
 # y_pred = predict(model, newdata = t_s)
-
 
 
 attach(data_complete)
@@ -47,19 +49,44 @@ t_s = subset(my_data, split == FALSE)
 
 
 plot(co2_emission, year)
-plot(co2_emission, make)
-plot(co2_emission, model)
-plot(co2_emission, description)
-plot(co2_emission, euro_standard)
-plot(co2_emission, transmission_type)
-plot(co2_emission, engine_capacity)
-plot(co2_emission, fuel_type)
-plot(co2_emission, urban_metric)
-plot(co2_emission, extra_urban_metric)
-plot(co2_emission, combined_metric)
-plot(co2_emission, noise_level)
-plot(co2_emission, fuel_cost_6000_miles)
+#abline(lm(co2_emission~year), col="red") 
+#lines(lowess(co2_emission,year), col="blue") 
 
+plot(co2_emission, euro_standard)
+#abline(lm(co2_emission~euro_standard), col="red") 
+#lines(lowess(co2_emission,euro_standard), col="blue") 
+
+plot(co2_emission, transmission_type)
+#abline(lm(co2_emission~transmission_type), col="red") 
+#lines(lowess(co2_emission,transmission_type), col="blue") 
+
+plot(co2_emission, engine_capacity)
+#abline(lm(co2_emission~engine_capacity), col="red") 
+#lines(lowess(co2_emission,engine_capacity), col="blue") 
+
+plot(co2_emission, fuel_type)
+#abline(lm(co2_emission~fuel_type), col="red") 
+#lines(lowess(co2_emission,fuel_type), col="blue") 
+
+plot(co2_emission, urban_metric)
+abline(lm(co2_emission~urban_metric), col="red") 
+lines(lowess(co2_emission,urban_metric), col="blue") 
+
+plot(co2_emission, extra_urban_metric)
+abline(lm(co2_emission~extra_urban_metric), col="red") 
+lines(lowess(co2_emission,extra_urban_metric), col="blue") 
+
+plot(co2_emission, combined_metric)
+abline(lm(co2_emission~combined_metric), col="red") 
+lines(lowess(co2_emission,combined_metric), col="blue") 
+
+plot(co2_emission, noise_level)
+abline(lm(co2_emission~noise_level), col="red") 
+lines(lowess(co2_emission,noise_level), col="blue") 
+
+plot(co2_emission, fuel_cost_6000_miles)
+abline(lm(co2_emission~fuel_cost_6000_miles), col="red") 
+lines(lowess(co2_emission,fuel_cost_6000_miles), col="blue") 
 
 model <- lm(co2_emission ~ ., data = tr_s)
 summary(model)
@@ -199,7 +226,7 @@ car::vif(model_without_outliers)
 
 # DOPO LE RIFLESSIONI: sono stati eliminati i regressori che presentano un VIF oltre i 10 e che sono in correlazione con altri regressori con VIF minore di 10. 
 model_reduced_collinearity <- lm(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-             fuel_type + fuel_cost_6000_miles  + noise_level, data = eliminated)
+             fuel_type + fuel_cost_6000_miles  + noise_level, data = tr_s_outliers)
 summary(model_reduced_collinearity)
 confint(model_reduced_collinearity, level=.95)
 
@@ -226,7 +253,7 @@ confint(step.model, level=.95)
 
 train.control <- trainControl(method = "cv", number = 10)
 model_validation <- train(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-                            fuel_type + fuel_cost_6000_miles + noise_level, data = eliminated, method = "lm",
+                            fuel_type + fuel_cost_6000_miles + noise_level, data = tr_s_outliers, method = "lm",
                trControl = train.control)
 summary(model_validation)
 confint(model_validation, level=.95)
@@ -243,8 +270,38 @@ y_pred_validation = predict(model_validation, newdata = t_s, interval = 'confide
 plot(y_pred_validation)
 
 
+# ==============================================================
+# BOOTSTRAP
+# ==============================================================
 
 
+boot.fn=function(data,index){
+  return(coef(lm(co2_emission~year + euro_standard + transmission_type + engine_capacity +
+                   fuel_type + fuel_cost_6000_miles + noise_level, data = data,subset=index)))
+}
+n = nrow(tr_s_outliers)
 
+boot.fn(tr_s_outliers, 1:n)
+
+# Boot estimate is not deterministic
+boot.fn(tr_s_outliers,sample(1:n, 79576,replace=T))
+boot.fn(tr_s_outliers,sample(1:n, 79576,replace=T))
+# We use the boot() function to compute the standard errors 
+# of 1,000 bootstrap estimates for the intercept and slope terms.
+b = boot(tr_s_outliers ,boot.fn ,1000)
+
+s = summary(lm(model_validation, data = tr_s_outliers))
+
+# Take all std. errors of the bootstrap estimate 
+x <- capture.output(b)
+x <- str_extract(x, "^t[0-9.]+.*$")
+x <- x[!is.na(x)]
+se <- as.numeric(unlist(str_extract_all(x, '[0-9.]+$')))
+
+# Take all std. errors of the linear model
+c = s$coefficients[ ,2]
+c = as.numeric(c)
+
+cat("\nDifference between no-Transformation Std.errors:\n",c - se,"\n")
 
 
