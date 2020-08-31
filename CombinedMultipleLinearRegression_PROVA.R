@@ -12,7 +12,12 @@ tr_s = subset(my_data, split == TRUE)
 t_s = subset(my_data, split == FALSE)
 
 model <- lm(co2_emission ~ year + euro_standard + transmission_type +
-              fuel_type + urban_metric + extra_urban_metric + combined_metric + noise_level + fuel_cost_6000_miles, data = tr_s)
+              fuel_type + urban_metric + extra_urban_metric + log(combined_metric) + (noise_level)^2 + fuel_cost_6000_miles, data = tr_s)
+
+model <- lm(co2_emission ~ year + transmission_type +
+              fuel_type + exp(urban_metric) + (log(extra_urban_metric))^2 + (log(combined_metric))^2 + exp(noise_level) + log(fuel_cost_6000_miles), data = tr_s)
+
+
 
 library(corrplot)
 res <- cor(my_data, use="pairwise.complete.obs")
@@ -21,7 +26,7 @@ dev.new()
 plot.new()
 dev.off()
 corrplot(res, type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45)
+         tl.col = "black", tl.srt = 45, method = "number")
 
 combined_model_1 <- lm(co2_emission ~ year + euro_standard + transmission_type +
                        fuel_type + urban_metric*fuel_cost_6000_miles*extra_urban_metric*combined_metric + noise_level, data = tr_s)

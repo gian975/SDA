@@ -1,32 +1,24 @@
 
 attach(t_s)
-attach(tr_s)
+attach(tr_s_high_leverage)
 
-fit.linear <- (co2_emission ~ euro_standard + fuel_cost_6000_miles + fuel_type + engine_capacity + year + transmission_type
-               + noise_level + combined_metric + urban_metric + extra_urban_metric)
+fit.linear <- (co2_emission ~ euro_standard + transmission_type +
+                 fuel_type + combined_metric)
 
-fit.reduced <- (co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-                                     fuel_type + fuel_cost_6000_miles + noise_level)
 
-fit.poly2 <- (co2_emission ~ poly(year,2) + poly(euro_standard,2) + transmission_type + poly(engine_capacity,2) +
-                 fuel_type + poly(fuel_cost_6000_miles,2) + poly(noise_level,2))
-
-fit.log <- (co2_emission ~ log(year) + log(euro_standard) + transmission_type + log(engine_capacity) +
-                fuel_type + log(fuel_cost_6000_miles) + log(noise_level))
-
-n = nrow(tr_s)
-c=nrow(t_s)
+n = nrow(tr_s_high_leverage)
+c=nrow(tr_s_high_leverage)
 
 
 ######### Validation Set Approch #########
 train=sample(1:n,n)
 test=sample(1:c,c)
 set.seed(1)
-lm.fit=lm(fit.linear, data = data_complete , subset = train)
+lm.fit=lm(fit.linear, data = tr_s_high_leverage , subset = train)
 
 # the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
-y_true=data_complete$co2_emission
-y_predict=predict(lm.fit,data_complete)
+y_true=tr_s_high_leverage$co2_emission
+y_predict=predict(lm.fit,tr_s_high_leverage)
 mean(((y_true-y_predict)[test])^2)
 
 # the estimated test MSE for the linear regression reduced fit is 114.237
@@ -58,7 +50,7 @@ library(boot)
 
 glm.fit=glm(fit.linear ,data=data_complete)
 
-cv.err=cv.glm(data_complete,glm.fit, K = 10)
+cv.err=cv.glm(tr_s_high_leverage,glm.fit, K = 10)
 cv.err$delta # The K-Fold Cross validation estimate for the test error is approximately  48.12944 (seed=1).
 
 # K-Fold Cross validation for polynomial regressions with orders i=1,2,...,4.
@@ -66,7 +58,7 @@ cv.err$delta # The K-Fold Cross validation estimate for the test error is approx
 cv.error=rep(0,4)
 for (i in 1:4){
   glm.fit=glm(fit.poly2, data = data_complete)
-  cv.error[i]=cv.glm(data_complete,glm.fit, K=10)$delta[1]
+  cv.error[i]=cv.glm(tr_s_high_leverage,glm.fit, K=10)$delta[1]
 }
 cv.error
 ## we obtain a test error higher -> 74.30688 73.93336 74.07724 74.46966
@@ -78,24 +70,24 @@ cv.error
 # for the intercept and slope terms by randomly sampling from among the observations with replacement
 # We will compare the estimates obtained using the bootstrap to those obtained using the previous models
 library(stringr)
-indice=nrow(data_complete)
+indice=nrow(tr_s_high_leverage)
 
 # No-transformation
 set.seed (2)
 boot.fn=function(data,index){
-  return(coef(lm(co2_emission ~ euro_standard + fuel_cost_6000_miles + fuel_type + engine_capacity + year + transmission_type
-                  + noise_level + combined_metric + urban_metric + extra_urban_metric, data = data,subset=index)))
+  return(coef(lm(co2_emission ~  euro_standard + transmission_type +
+                   fuel_type + combined_metric, data = tr_s_high_leverage,subset=index)))
 }
-boot.fn(data_complete, 1:indice)
+boot.fn(tr_s_high_leverage, 1:indice)
 
 # Boot estimate is not deterministic
-boot.fn(data_complete,sample(1:n, 45441,replace=T))
-boot.fn(data_complete,sample(1:n, 45441,replace=T))
+boot.fn(tr_s_high_leverage,sample(1:n, 45441,replace=T))
+boot.fn(tr_s_high_leverage,sample(1:n, 45441,replace=T))
 # We use the boot() function to compute the standard errors 
 # of 1,000 bootstrap estimates for the intercept and slope terms.
-b = boot(data_complete ,boot.fn ,1000)
+b = boot(tr_s_high_leverage ,boot.fn ,1000)
 
-s = summary(lm(fit.linear, data = data_complete))
+s = summary(lm(fit.linear, data = tr_s_high_leverage))
 
 # Take all std. errors of the bootstrap estimate 
 x <- capture.output(b)
