@@ -1,5 +1,5 @@
 library(pls)
-attach(data_complete)
+attach(tr_s_high_leverage)
 
 #################
 ###### PCR ######
@@ -10,7 +10,7 @@ set.seed (2)
 #a quella per lm(), con alcune opzioni aggiuntive. L'impostazione scale=TRUEha l'effetto di standardizzare ogni predittore prima di generare i componenti principali, in modo che la scala su cui viene misurata ogni variabile non abbia effetto. L'impostazione validation="CV"causa il pcr()calcolo dell'errore di convalida incrociata dieci volte per ogni possibile valore di M , il numero di componenti principali utilizzati. Come al solito, imposteremo 
 #un seme casuale per la coerenza:
 
-pcr.fit=pcr(fit.linear,data = data_complete,scale=TRUE, validation ="CV")
+pcr.fit=pcr(fit.linear,data = tr_s_high_leverage,scale=TRUE, validation ="CV")
 
 #Data: 	X dimension: [8] 79576  
 #       Y dimension: [1]  79576
@@ -40,14 +40,14 @@ which.min(MSEP(pcr.fit)$val[1,,][-1])
 
 # Now perform PCR on the training data and evaluate its test set performance:
 set.seed (1)
-x = model.matrix(fit.linear,data = data_complete)[,-1]
+x = model.matrix(fit.linear,data = tr_s_high_leverage)[,-1]
 
-y = data_complete$co2_emission
+y = tr_s_high_leverage$co2_emission
 train=sample(1:nrow(x), nrow(x)/2) # another typical approach to sample
 test=(-train)
 y.test=y[test]
 
-pcr.fit=pcr(fit.linear,data = data_complete ,subset=train,scale=TRUE,
+pcr.fit=pcr(fit.linear,data = tr_s_high_leverage ,subset=train,scale=TRUE,
             validation ="CV")
 dev.new()
 # Plot MSE and RMSE 
@@ -58,7 +58,7 @@ plot(RMSEP(pcr.fit),legendpos = "topright")
 
 # We compute the test MSE as follows:
 pcr.pred=predict(pcr.fit,x[test,], ncomp=minPCR)
-mean((pcr.pred-y.test)^2) # --> 1.095797
+mean((pcr.pred-y.test)^2) # --> 8.00
 # This test set MSE is competitive with the results obtained using ridge and the lasso
 
 # Finally, we fit PCR on the full data set, using M = 8
@@ -79,7 +79,7 @@ set.seed (1)
 # With pls, we don't concentrate our attention only on the regressions, but also the y variable
 # Setting scale=TRUE has the effect of standardizing each predictor (scale projection).
 # Setting validation = 'CV' has the effect to use cross validation to rate M parameter
-pls.fit=plsr(fit.linear,data = data_complete, scale=TRUE, 
+pls.fit=plsr(fit.linear,data = tr_s_high_leverage, scale=TRUE, 
              validation ="CV")
 summary(pls.fit)
 dev.new()
@@ -88,20 +88,17 @@ which.min(MSEP(pls.fit)$val[1,,][-1]) # M = 8
 
 # Now perform Pls on the training data and evaluate its test set performance:
 set.seed (1)
-pls.fit=plsr(fit.linear,data = data_complete, subset=train, 
+pls.fit=plsr(fit.linear,data = tr_s_high_leverage, subset=train, 
              scale=TRUE, validation ="CV")
 
 validationplot(pls.fit,val.type="MSEP"); 
 which.min(MSEP(pls.fit)$val[1,,][-1]); # M = 6
-pls.pred=predict(pls.fit,x[test,],ncomp=8)
-mean((pls.pred-y.test)^2) # --> 34.44799
-pls.pred=predict(pls.fit,x[test,],ncomp=7)
-mean((pls.pred-y.test)^2) # --> 39.0371
-pls.pred=predict(pls.fit,x[test,],ncomp=6)
-mean((pls.pred-y.test)^2) # --> 38.43707
+pls.pred=predict(pls.fit,x[test,],ncomp=4)
+mean((pls.pred-y.test)^2) # --> 8.00
+
 # The test MSE is comparable to (slightly higher) the test MSE obtained using ridge regression, the lasso, and PCR.
 
-# Finally, we perform PLS using the full data set, using M = 8, 
-pls.fit=plsr(fit.linear,data = data_complete ,scale=TRUE,ncomp=8)
+# Finally, we perform PLS using the full data set, using M = 4, 
+pls.fit=plsr(fit.linear,data = tr_s_high_leverage ,scale=TRUE,ncomp=4)
 summary(pls.fit)
 #Final result: with 4 components we can explain the same variance of y obtained with 8 components

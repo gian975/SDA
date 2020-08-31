@@ -9,6 +9,9 @@ install.packages("corrplot")
 install.packages('caTools')
 install.packages('caret', dependencies = TRUE)
 install.packages("leaps")
+install.packages("glmnet")
+install.packages("pls")
+
 
 # ==============================================================
 # IMPORT: 
@@ -239,16 +242,17 @@ dev.off()
 corrplot(res, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45, method ="number")
 
-car::vif(model_without_outliers)
+car::vif(model_high_leverage)
 
-# DOPO LE RIFLESSIONI: sono stati eliminati i regressori che presentano un VIF oltre i 10 e che sono in correlazione con altri regressori con VIF minore di 10. 
+# DOPO LE RIFLESSIONI: sono stati eliminati i regressori che presentano un VIF oltre i 10 e che sono in correlazione con altri regressori con VIF minore di 10 (year). 
 # SI sono analizzati 3 possibili scenari: Fuel_cost6000, Combine Metric ed Extra Urban Metric: 
 
 # ==============================================================
 # COMBINE METRIC: 
 # ==============================================================
-model_reduced_collinearity_CM <- lm(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-             fuel_type + combined_metric  + noise_level, data = tr_s_outliers)
+set.seed(2)
+model_reduced_collinearity_CM <- lm(co2_emission ~ euro_standard + transmission_type + engine_capacity +
+             fuel_type + combined_metric  + noise_level, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_CM)
 confint(model_reduced_collinearity_CM, level=.95)
 
@@ -262,23 +266,9 @@ corrplot(res, type = "upper", order = "hclust",
 car::vif(model_reduced_collinearity_CM)
 
 # Engine Capacity osservando gli intervalli di confidenza viene eliminato per semplificare il modello: 
-model_reduced_collinearity_CM <- lm(co2_emission ~ year + euro_standard + transmission_type +
-                                      fuel_type + combined_metric  + noise_level, data = tr_s_outliers)
-summary(model_reduced_collinearity_CM)
-confint(model_reduced_collinearity_CM, level=.95)
-
-res <- cor(my_data, use="pairwise.complete.obs")
-round(res, 2)
-dev.new()
-plot.new()
-dev.off()
-corrplot(res, type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45, method ="number")
-car::vif(model_reduced_collinearity_CM)
-
-# Discorso analogo per il regressore year:
+set.seed(2)
 model_reduced_collinearity_CM <- lm(co2_emission ~ euro_standard + transmission_type +
-                                      fuel_type + combined_metric  + noise_level, data = tr_s_outliers)
+                                      fuel_type + combined_metric  + noise_level, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_CM)
 confint(model_reduced_collinearity_CM, level=.95)
 
@@ -295,8 +285,8 @@ car::vif(model_reduced_collinearity_CM)
 # ==============================================================
 # FUEL COST 6000: 
 # ==============================================================
-model_reduced_collinearity_FC6000 <- lm(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-                                      fuel_type + fuel_cost_6000_miles   + noise_level, data = tr_s_outliers)
+model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmission_type + engine_capacity +
+                                      fuel_type + fuel_cost_6000_miles   + noise_level, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_FC6000 )
 confint(model_reduced_collinearity_FC6000 , level=.95)
 
@@ -311,10 +301,11 @@ car::vif(model_reduced_collinearity_FC6000 )
 
 
 # Engine Capacity viene eliminato per il suo intervallo di confidenza: 
-model_reduced_collinearity_FC6000 <- lm(co2_emission ~ year + euro_standard + transmission_type +
-                                          fuel_type + fuel_cost_6000_miles   + noise_level, data = tr_s_outliers)
+model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmission_type +
+                                          fuel_type + fuel_cost_6000_miles   + noise_level, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_FC6000 )
 confint(model_reduced_collinearity_FC6000 , level=.95)
+summary(model_reduced_collinearity_CM)
 
 res <- cor(my_data, use="pairwise.complete.obs")
 round(res, 2)
@@ -327,10 +318,10 @@ car::vif(model_reduced_collinearity_FC6000 )
 
 
 # ==============================================================
-# EXTRA URBAN METRIC: 
+# EXTRA URBAN METRIC: L'analisi si ferma qua perchè fa schifo
 # ==============================================================
-model_reduced_collinearity_EUM <- lm(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-                                          fuel_type + extra_urban_metric + noise_level, data = tr_s_outliers)
+model_reduced_collinearity_EUM <- lm(co2_emission ~ euro_standard + transmission_type + engine_capacity +
+                                          fuel_type + extra_urban_metric + noise_level, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_EUM )
 confint(model_reduced_collinearity_EUM , level=.95)
 
@@ -345,8 +336,8 @@ car::vif(model_reduced_collinearity_EUM )
 
 
 # Engine capacity viene eliminato: 
-model_reduced_collinearity_EUM <- lm(co2_emission ~ year + euro_standard + transmission_type +
-                                       fuel_type + extra_urban_metric + noise_level, data = tr_s_outliers)
+model_reduced_collinearity_EUM <- lm(co2_emission ~ euro_standard + transmission_type +
+                                       fuel_type + extra_urban_metric + noise_level, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_EUM )
 confint(model_reduced_collinearity_EUM , level=.95)
 
@@ -357,7 +348,7 @@ plot.new()
 dev.off()
 corrplot(res, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45, method ="number")
-car::vif(model_reduced_collinearity_EUM )
+car::vif(model_reduced_collinearity_EUM)
 
 
 # ==============================================================
@@ -382,14 +373,13 @@ anova(model_reduced_collinearity_CM, step.model_CM)
 # BEST MODEL SELECTION CM:  
 # ==============================================================
 
-x <-regsubsets(co2_emission~year + euro_standard + transmission_type + engine_capacity +
-                 fuel_type + combined_metric  + noise_level, data=tr_s_high_leverage, nvmax = 7, method = "seqrep")
+x <-regsubsets(co2_emission~euro_standard + transmission_type + engine_capacity +
+                 fuel_type + combined_metric  + noise_level, data=tr_s_high_leverage, nvmax = 6, method = "seqrep")
 summary(x)
 
-
 set.seed(100)
-model_reduced_collinearity_CM <- lm(co2_emission ~ year + euro_standard + transmission_type +
-                                      fuel_type + combined_metric, data = tr_s_outliers)
+model_reduced_collinearity_CM <- lm(co2_emission ~ euro_standard + transmission_type +
+                                      fuel_type + combined_metric + engine_capacity, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_CM)
 confint(model_reduced_collinearity_CM, level=.95)
 
@@ -406,10 +396,10 @@ car::vif(model_reduced_collinearity_CM)
 # di engine_capacity visto dall'intervallo di confidenza e year visto sia dall'intervallo di confidenza che dal p-value
 
 set.seed(100)
-model_reduced_collinearity_CM <- lm(co2_emission ~euro_standard + transmission_type +
-                                      fuel_type + combined_metric, data = tr_s_outliers)
-summary(model_reduced_collinearity_CM)
-confint(model_reduced_collinearity_CM, level=.95)
+model_reduced_collinearity_CM_1 <- lm(co2_emission ~ euro_standard + transmission_type +
+                                      fuel_type + combined_metric, data = tr_s_high_leverage)
+summary(model_reduced_collinearity_CM_1)
+confint(model_reduced_collinearity_CM_1, level=.95)
 
 res <- cor(my_data, use="pairwise.complete.obs")
 round(res, 2)
@@ -420,17 +410,18 @@ corrplot(res, type = "upper", order = "hclust",
          tl.col = "black", tl.srt = 45, method ="number")
 car::vif(model_reduced_collinearity_CM)
 
-anova(x, model_reduced_collinearity_CM)
+anova(model_reduced_collinearity_CM_1, model_reduced_collinearity_CM)
 # ==============================================================
 # BEST MODEL SELECTION FC6000:  
 # ==============================================================
-x <-regsubsets(co2_emission~yco2_emission ~ year + euro_standard + transmission_type +
+set.seed(100)
+x <-regsubsets(co2_emission~yco2_emission ~ euro_standard + transmission_type +
                  fuel_type + fuel_cost_6000_miles   + noise_level + engine_capacity, data=tr_s_high_leverage, nvmax = 7, method = "seqrep")
 summary(x)
 
 
-model_reduced_collinearity_FC6000 <- lm(co2_emission ~ year + euro_standard + transmission_type +
-                                          fuel_type + fuel_cost_6000_miles   + noise_level, data = tr_s_outliers)
+model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmission_type +
+                                          fuel_type + fuel_cost_6000_miles + engine_capacity, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_FC6000 )
 confint(model_reduced_collinearity_FC6000 , level=.95)
 
@@ -443,6 +434,24 @@ corrplot(res, type = "upper", order = "hclust",
          tl.col = "black", tl.srt = 45, method ="number")
 car::vif(model_reduced_collinearity_FC6000 )
 
+
+# Engine Capacity ha un intervallo di confidenza stretto quindi lo si può eliminare
+set.seed(100)
+model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmission_type +
+                                          fuel_type + fuel_cost_6000_miles, data = tr_s_high_leverage)
+summary(model_reduced_collinearity_FC6000 )
+confint(model_reduced_collinearity_FC6000 , level=.95)
+
+res <- cor(my_data, use="pairwise.complete.obs")
+round(res, 2)
+dev.new()
+plot.new()
+dev.off()
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, method ="number")
+car::vif(model_reduced_collinearity_FC6000 )
+
+
 anova(x, model_reduced_collinearity_FC6000)
 
 # ==============================================================
@@ -451,11 +460,12 @@ anova(x, model_reduced_collinearity_FC6000)
 
 train.control <- trainControl(method = "cv", number = 10)
 set.seed(6)
-model_validation <- train(co2_emission ~ year + euro_standard + transmission_type + engine_capacity +
-                            fuel_type + fuel_cost_6000_miles + noise_level, data = tr_s_outliers, method = "lm",
+model_validation <- train(co2_emission ~ euro_standard + transmission_type +
+                            fuel_type + combined_metric, data = tr_s_high_leverage, method = "lm",
                trControl = train.control)
 summary(model_validation)
 confint(model_validation, level=.95)
+mean((model_reduced_collinearity_CM_1$residuals)^2)
 
 # ==============================================================
 # TEST PREDICTION
@@ -502,3 +512,5 @@ c = s$coefficients[ ,2]
 c = as.numeric(c)
 
 cat("\nDifference between no-Transformation Std.errors:\n",c - se,"\n")
+
+mean((model_reduced_collinearity_CM$residuals)^2)

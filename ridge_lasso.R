@@ -1,8 +1,8 @@
 library(glmnet)
-attach(tr_s)
+attach(tr_s_high_leverage)
 
-fit.linear <- (co2_emission ~ euro_standard + fuel_cost_6000_miles + fuel_type + engine_capacity + year + transmission_type
-               + noise_level + combined_metric + urban_metric + extra_urban_metric)
+fit.linear <- (co2_emission ~ euro_standard + transmission_type +
+                 fuel_type + combined_metric)
 
 
 # The model.matrix() function is particularly useful for creating x; not only does it produce a matrix 
@@ -10,9 +10,9 @@ fit.linear <- (co2_emission ~ euro_standard + fuel_cost_6000_miles + fuel_type +
 # variables into dummy variables (recommended).
 # The latter property is important because glmnet() can only take numerical, quantitative inputs.
 
-x = model.matrix(fit.linear, data_complete)[,-1] #[-1] means no intercept
+x = model.matrix(fit.linear, tr_s_high_leverage)[,-1] #[-1] means no intercept
 
-y = data_complete$co2_emission
+y = tr_s_high_leverage$co2_emission
 
 
 #=================================
@@ -48,7 +48,7 @@ coef(ridge.mod)[,60] # corresponding coefficients
 sqrt(sum(coef(ridge.mod)[-1,60]^2)) # l2 norm = 3.82> l2 for lambda[50]
 
 # obtain the ridge regression coefficients for a new lambda, say 50:
-predict(ridge.mod,s=50,type="coefficients")[1:11,] 
+predict(ridge.mod,s=50,type="coefficients")[1:5,] 
 
 
 # Validation approach to estimate test error
@@ -59,7 +59,7 @@ y.test=y[test]
 # fit a ridge regression model on the training set, and evaluate its MSE on the test set, using lambda = 4. 
 ridge.mod=glmnet(x[train,],y[train],alpha=0,lambda=grid,thresh=1e-12)
 ridge.pred=predict(ridge.mod,s=4,newx=x[test,]) # Note the use of the predict() function again. This time we get predictions for a test set, by replacing type="coefficients" with the newx argument.
-mean((ridge.pred-y.test)^2) # test MSE = 58,59
+mean((ridge.pred-y.test)^2) # test MSE = 33.44
 mean((mean(y[train ])-y.test)^2) # test MSE, if we had instead simply fit a model with just an intercept, we would have predicted each test observation using the mean of the training observations.
 
 #ALL AUMENTARE DI LAMBDA I COEEFICIENTI DIMUISCONO E MSE AUMENTA , IN PARTICOLARE
@@ -93,7 +93,7 @@ mean((ridge.pred-y.test)^2) #64,23  #IMPROVEMENT OF MSE RESPECT LAMBDA=4
 #Finally refit our ridge regression model on the full data set with the best lambda
 
 out=glmnet(x,y,alpha=0)
-predict(out,type="coefficients",s=bestlam)[1:11,]
+predict(out,type="coefficients",s=bestlam)[1:5,]
 # As expected, none of the coefficients are zero
 # ridge regression does not perform variable selection!
 dev.new()
@@ -132,7 +132,7 @@ mean((lasso.pred-y.test)^2)
 # However, the lasso has a substantial advantage:
 # 1 of the 11 coefficient estimates is exactly zero (extra_urban_metric) .
 out=glmnet(x,y,alpha=1,lambda=grid)
-lasso.coef=predict(out,type="coefficients",s=bestlam)[1:11,]
+lasso.coef=predict(out,type="coefficients",s=bestlam)[1:5,]
 lasso.coef
 lasso.coef[lasso.coef!=0]
 cat("Number of coefficients equal to 0:",sum(lasso.coef==0),"\n")
