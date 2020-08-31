@@ -27,7 +27,7 @@ lm.fit=lm(fit.linear, data = data_complete , subset = train)
 # the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
 y_true=data_complete$co2_emission
 y_predict=predict(lm.fit,data_complete)
-mean(((y_true-y_predict)[test])^2)
+mean(((y_true-y_predict)[test])^2) 
 
 # the estimated test MSE for the linear regression reduced fit is 114.237
 lm.fit2=lm(fit.reduced , data = data_complete, subset=train)
