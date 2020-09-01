@@ -53,24 +53,24 @@ t_s = subset(my_data, split == FALSE)
 
 
 plot(co2_emission, year)
-#abline(lm(co2_emission~year), col="red") 
-#lines(lowess(co2_emission,year), col="blue") 
+abline(lm(co2_emission~year), col="red") 
+lines(lowess(co2_emission,year), col="blue") 
 
 plot(co2_emission, euro_standard)
-#abline(lm(co2_emission~euro_standard), col="red") 
-#lines(lowess(co2_emission,euro_standard), col="blue") 
+abline(lm(co2_emission~euro_standard), col="red") 
+lines(lowess(co2_emission,euro_standard), col="blue") 
 
 plot(co2_emission, transmission_type)
-#abline(lm(co2_emission~transmission_type), col="red") 
-#lines(lowess(co2_emission,transmission_type), col="blue") 
+abline(lm(co2_emission~transmission_type), col="red") 
+lines(lowess(co2_emission,transmission_type), col="blue") 
 
 plot(co2_emission, engine_capacity)
-#abline(lm(co2_emission~engine_capacity), col="red") 
-#lines(lowess(co2_emission,engine_capacity), col="blue") 
+abline(lm(co2_emission~engine_capacity), col="red") 
+lines(lowess(co2_emission,engine_capacity), col="blue") 
 
 plot(co2_emission, fuel_type)
-#abline(lm(co2_emission~fuel_type), col="red") 
-#lines(lowess(co2_emission,fuel_type), col="blue") 
+abline(lm(co2_emission~fuel_type), col="red") 
+lines(lowess(co2_emission,fuel_type), col="blue") 
 
 plot(co2_emission, urban_metric)
 abline(lm(co2_emission~urban_metric), col="red") 
@@ -105,7 +105,7 @@ confint(model, level=.95)
 # ==============================================================
 # I residui devono avere distribuzione gaussiana: 
 resid <- model$residuals
-hist(resid)
+hist(resid, breaks= 100, xlim =c(-100, 100))
 # Altrimenti si guarda il QQ-plot: se i residui seguono una linea retta allora essi sono normalmente distribuiti. 
 
 
@@ -208,6 +208,15 @@ model_without_outliers <- lm(co2_emission ~ ., data = tr_s_outliers)
 summary(model_without_outliers)
 
 
+# ==============================================================
+# Confronto con e senza outliers: 
+# ==============================================================
+
+summary(model)
+summary(model_without_outliers)
+
+# si osserva un RSE di due punti più basso, quindi si procede con il modello senza outliers
+
 # 5) High Leverage Point -> DA VEDERE MEGLIO
 # ==============================================================
 # 
@@ -215,20 +224,24 @@ summary(model_without_outliers)
 # Gli High Leverage Point si osservano dall'ultimo grafico di plot(model), ovvero, dal grafico Residual vs Leverage si può vedere che alcuni punti dati sono raggruppati 
 # insieme, mentre si preferisce una loro distribuzione uniforme. 
 
-# Statistica affinchè un punto sia da considerarsi come high leverage point
-2*(10+1)/36339
 # Plot dei 5 punti a maggior influenza
 plot(model_without_outliers, 4, id.n = 5)
-
-# Calcolo della distanza di hook per punti ad alta influenza
-4/(36339 - 10 -1)
 
 HighLeverage <- cooks.distance(model_without_outliers) > (11/(nrow(tr_s_outliers)))
 LargeResiduals <- rstudent(model_without_outliers) > 3
 tr_s_high_leverage <- tr_s_outliers[!HighLeverage & !LargeResiduals,]
 set.seed(4)
 model_high_leverage<-lm(co2_emission ~ ., data = tr_s_high_leverage)
+
+# ==============================================================
+# Confronto con e senza high leverage point: 
+# ==============================================================
+
+summary(model_without_outliers)
 summary(model_high_leverage)
+
+# si osserva un RSE di due punti più basso, quindi si procede con il modello senza punti high leverage
+
 # 6) Collinearità dei dati
 # ==============================================================
 # COLLINEARITA' e CORRELAZIONE per eliminare qualche regressore: 
