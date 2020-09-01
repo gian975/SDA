@@ -1,8 +1,8 @@
 library(glmnet)
-attach(tr_s_high_leverage)
+attach(tr_s_outliers)
 
 fit.linear <- (co2_emission ~ euro_standard + transmission_type +
-                 fuel_type + combined_metric)
+                 fuel_type + combined_metric  + noise_level)
 
 
 # The model.matrix() function is particularly useful for creating x; not only does it produce a matrix 
@@ -10,9 +10,9 @@ fit.linear <- (co2_emission ~ euro_standard + transmission_type +
 # variables into dummy variables (recommended).
 # The latter property is important because glmnet() can only take numerical, quantitative inputs.
 
-x = model.matrix(fit.linear, tr_s_high_leverage)[,-1] #[-1] means no intercept
+x = model.matrix(fit.linear, tr_s_outliers)[,-1] #[-1] means no intercept
 
-y = tr_s_high_leverage$co2_emission
+y = tr_s_outliers$co2_emission
 
 
 #=================================
@@ -53,9 +53,15 @@ predict(ridge.mod,s=50,type="coefficients")[1:5,]
 
 # Validation approach to estimate test error
 set.seed(1)
-train=sample(1:nrow(x), nrow(x)/2) # another typical approach to sample
-test=(-train)
+
+n = nrow(tr_s_outliers)
+c=nrow(t_s_1)
+
+train=sample(1:n,n/2)
+test=sample(1:c,c)
+
 y.test=y[test]
+
 # fit a ridge regression model on the training set, and evaluate its MSE on the test set, using lambda = 4. 
 ridge.mod=glmnet(x[train,],y[train],alpha=0,lambda=grid,thresh=1e-12)
 ridge.pred=predict(ridge.mod,s=4,newx=x[test,]) # Note the use of the predict() function again. This time we get predictions for a test set, by replacing type="coefficients" with the newx argument.
@@ -132,7 +138,7 @@ mean((lasso.pred-y.test)^2)
 # However, the lasso has a substantial advantage:
 # 1 of the 11 coefficient estimates is exactly zero (extra_urban_metric) .
 out=glmnet(x,y,alpha=1,lambda=grid)
-lasso.coef=predict(out,type="coefficients",s=bestlam)[1:5,]
+lasso.coef=predict(out,type="coefficients",s=bestlam)[1:6,]
 lasso.coef
 lasso.coef[lasso.coef!=0]
 cat("Number of coefficients equal to 0:",sum(lasso.coef==0),"\n")

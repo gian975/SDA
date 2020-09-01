@@ -1,53 +1,25 @@
 
-attach(t_s)
-attach(tr_s_high_leverage)
+attach(tr_s_1)
+attach(tr_s_outliers)
 
-fit.linear <- (co2_emission ~ euro_standard + transmission_type +
-                 fuel_type + combined_metric)
+model_reduced_collinearity_CM <-(co2_emission ~ euro_standard + transmission_type +
+                                      fuel_type + combined_metric  + noise_level)
 
-
-n = nrow(tr_s_high_leverage)
-c=nrow(tr_s_high_leverage)
+n = nrow(tr_s_outliers)
+c=nrow(t_s_1)
 
 
 ######### Validation Set Approch #########
 train=sample(1:n,n)
 test=sample(1:c,c)
 set.seed(1)
-lm.fit=lm(fit.linear, data = tr_s_high_leverage , subset = train)
+lm.fit=lm(model_reduced_collinearity_CM, data = tr_s_outliers , subset = train)
 
 # the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
 
-y_true=data_complete$co2_emission
-y_predict=predict(lm.fit,data_complete)
-mean(((y_true-y_predict)[test])^2) 
 
-y_true=tr_s_high_leverage$co2_emission
-y_predict=predict(lm.fit,tr_s_high_leverage)
-mean(((y_true-y_predict)[test])^2)
-
-
-# the estimated test MSE for the linear regression reduced fit is 114.237
-lm.fit2=lm(fit.reduced , data = data_complete, subset=train)
-
-y_true=data_complete$co2_emission
-y_predict=predict(lm.fit2,data_complete)
-mean(((y_true-y_predict)[test])^2)
-
-# use the poly() function to estimate the test error for the polynomials-2 transformation.
-lm.fit3=lm(fit.poly2, data = data_complete, subset=train) 
-
-# the estimated test MSE for the linear regression fit is 67.6406
-y_true=data_complete$co2_emission
-y_predict=predict(lm.fit3,data_complete)
-mean(((y_true-y_predict)[test])^2)
-
-
-# estimate the test error for the log transformation. 251.937
-lm.fit4=lm(fit.log, data = data_complete, subset=train) 
-
-y_true=data_complete$co2_emission
-y_predict=predict(lm.fit4,data_complete)
+y_true=tr_s_outliers$co2_emission
+y_predict=predict(lm.fit,tr_s_outliers)
 mean(((y_true-y_predict)[test])^2)
 
 
@@ -76,24 +48,24 @@ cv.error
 # for the intercept and slope terms by randomly sampling from among the observations with replacement
 # We will compare the estimates obtained using the bootstrap to those obtained using the previous models
 library(stringr)
-indice=nrow(tr_s_high_leverage)
+indice=nrow(tr_s_outliers)
 
 # No-transformation
 set.seed (2)
 boot.fn=function(data,index){
-  return(coef(lm(co2_emission ~  euro_standard + transmission_type +
-                   fuel_type + combined_metric, data = tr_s_high_leverage,subset=index)))
+  return(coef(lm(co2_emission ~ euro_standard + transmission_type +
+                   fuel_type + combined_metric  + noise_level, data = tr_s_outliers,subset=index)))
 }
-boot.fn(tr_s_high_leverage, 1:indice)
+boot.fn(tr_s_outliers, 1:indice)
 
 # Boot estimate is not deterministic
-boot.fn(tr_s_high_leverage,sample(1:n, 45441,replace=T))
-boot.fn(tr_s_high_leverage,sample(1:n, 45441,replace=T))
+boot.fn(tr_s_outliers,sample(1:n, 45441,replace=T))
+boot.fn(tr_s_outliers,sample(1:n, 45441,replace=T))
 # We use the boot() function to compute the standard errors 
 # of 1,000 bootstrap estimates for the intercept and slope terms.
-b = boot(tr_s_high_leverage ,boot.fn ,1000)
+b = boot(tr_s_outliers ,boot.fn ,1000)
 
-s = summary(lm(fit.linear, data = tr_s_high_leverage))
+s = summary(lm(model_reduced_collinearity_CM, data = tr_s_outliers))
 
 # Take all std. errors of the bootstrap estimate 
 x <- capture.output(b)
@@ -111,20 +83,25 @@ cat("\nDifference between no-Transformation Std.errors:\n",c - se,"\n")
 # Polinomials-2 no-linear transformation
 set.seed (2)
 
-boot.fn=function(data,index){
-  return(coef(lm(co2_emission ~ poly(year,2) + poly(euro_standard,2) + transmission_type + poly(engine_capacity,2) +
-                   fuel_type + poly(fuel_cost_6000_miles,2) + poly(noise_level,2),data = data,subset=index)))
-}
-boot.fn(data_complete, 1:indice)
+indice=nrow(tr_s)
 
-boot.fn(data_complete,sample(1:indice, 45441,replace=T))
+model_not_linear_poly_2 <- lm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 2) +
+                                fuel_type + combined_metric, data = tr_s)
+
+boot.fn=function(data,index){
+  return(coef(lm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 2) +
+                   fuel_type + combined_metric ,data = data,subset=index)))
+}
+boot.fn(tr_s, 1:indice)
+
+boot.fn(tr_s,sample(1:indice, 45441,replace=T))
 
 # We use the boot() function to compute the standard errors 
 # of 1,000 bootstrap estimates for the intercept and slope terms.
 
-b = boot(data_complete ,boot.fn ,1000)
+b = boot(tr_s ,boot.fn ,1000)
 
-s = summary(lm(fit.poly2,data = data_complete))
+s = summary(lm(model_not_linear_poly_2,data = tr_s))
 
 # Take all std. errors of the bootstrap estimate 
 x <- capture.output(b)
@@ -141,18 +118,25 @@ cat("\nDifference between poly-2 transformation Std.errors:\n",c - se,"\n")
 # Polinomials-3 no-linear transformation
 set.seed (2)
 
+indice=nrow(tr_s)
+
+model_not_linear_poly_3 <- lm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity,3) +
+                                fuel_type + combined_metric, data = tr_s)
+
 boot.fn=function(data,index){
-  temp <- index
-  return(coef(lm(fit.poly3, data = data, subset=temp)))
+  return(coef(lm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 3) +
+                   fuel_type + combined_metric ,data = data,subset=index)))
 }
+boot.fn(tr_s, 1:indice)
 
-boot.fn(merComplete, 1:n)
+boot.fn(tr_s,sample(1:indice, 45441,replace=T))
 
-boot.fn(merComplete,sample(1:n, 79576,replace=T))
+# We use the boot() function to compute the standard errors 
+# of 1,000 bootstrap estimates for the intercept and slope terms.
 
-b = boot(merComplete ,boot.fn ,1000)
+b = boot(tr_s ,boot.fn ,1000)
 
-s = summary(lm(fit.poly3, data = merComplete))
+s = summary(lm(model_not_linear_poly_3,data = tr_s))
 
 # Take all std. errors of the bootstrap estimate 
 x <- capture.output(b)
@@ -169,18 +153,25 @@ cat("\nDifference between poly-3 transformation Std.errors:\n",c - se,"\n")
 # Polinomials-4 no-linear transformation
 set.seed (2)
 
+indice=nrow(tr_s)
+
+model_not_linear_poly_4 <- lm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity,4) +
+                                fuel_type + combined_metric, data = tr_s)
+
 boot.fn=function(data,index){
-  return(coef(lm(fit.poly4, data = data,subset=index)))
+  return(coef(lm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 4) +
+                   fuel_type + combined_metric ,data = data,subset=index)))
 }
+boot.fn(tr_s, 1:indice)
 
-boot.fn(merComplete, 1:n)
+boot.fn(tr_s,sample(1:indice, 45441,replace=T))
 
+# We use the boot() function to compute the standard errors 
+# of 1,000 bootstrap estimates for the intercept and slope terms.
 
-boot.fn(merComplete,sample(1:n, 79576,replace=T))
+b = boot(tr_s ,boot.fn ,1000)
 
-boot(merComplete ,boot.fn ,1000)
-
-summary(lm(fit.poly4, data = merComplete))
+s = summary(lm(model_not_linear_poly_4,data = tr_s))
 
 # Take all std. errors of the bootstrap estimate 
 x <- capture.output(b)
@@ -194,6 +185,77 @@ c = as.numeric(c)
 
 cat("\nDifference between poly-4 transformation Std.errors:\n",c - se,"\n")
 
+
+# Log trasformation no-linear transformation
+set.seed (2)
+
+indice=nrow(tr_s)
+
+model_not_linear_log <- lm(co2_emission ~ euro_standard + transmission_type + log(engine_capacity) +
+                             fuel_type + combined_metric  + noise_level, data = tr_s)
+
+boot.fn=function(data,index){
+  return(coef(lm(co2_emission ~ euro_standard + transmission_type + log(engine_capacity) +
+                   fuel_type + combined_metric  + noise_level,data = data,subset=index)))
+}
+boot.fn(tr_s, 1:indice)
+
+boot.fn(tr_s,sample(1:indice, 45441,replace=T))
+
+# We use the boot() function to compute the standard errors 
+# of 1,000 bootstrap estimates for the intercept and slope terms.
+
+b = boot(tr_s ,boot.fn ,1000)
+
+s = summary(lm(model_not_linear_log,data = tr_s))
+
+# Take all std. errors of the bootstrap estimate 
+x <- capture.output(b)
+x <- str_extract(x, "^t[0-9.]+.*$")
+x <- x[!is.na(x)]
+se <- as.numeric(unlist(str_extract_all(x, '[0-9.]+$')))
+
+# Take all std. errors of the log transformation
+c = s$coefficients[ ,2]
+c = as.numeric(c)
+
+cat("\nDifference between log transformation Std.errors:\n",c - se,"\n")
+
+
+# Sqrt trasformation no-linear transformation
+set.seed (2)
+
+indice=nrow(tr_s)
+
+model_not_linear_sqrt <- lm(co2_emission ~ euro_standard + transmission_type + sqrt(engine_capacity) +
+                              fuel_type + combined_metric  + noise_level, data = tr_s)
+
+boot.fn=function(data,index){
+  return(coef(lm(co2_emission ~ euro_standard + transmission_type + sqrt(engine_capacity) +
+                   fuel_type + combined_metric  + noise_level,data = data,subset=index)))
+}
+boot.fn(tr_s, 1:indice)
+
+boot.fn(tr_s,sample(1:indice, 45441,replace=T))
+
+# We use the boot() function to compute the standard errors 
+# of 1,000 bootstrap estimates for the intercept and slope terms.
+
+b = boot(tr_s ,boot.fn ,1000)
+
+s = summary(lm(model_not_linear_sqrt,data = tr_s))
+
+# Take all std. errors of the bootstrap estimate 
+x <- capture.output(b)
+x <- str_extract(x, "^t[0-9.]+.*$")
+x <- x[!is.na(x)]
+se <- as.numeric(unlist(str_extract_all(x, '[0-9.]+$')))
+
+# Take all std. errors of the log transformation
+c = s$coefficients[ ,2]
+c = as.numeric(c)
+
+cat("\nDifference between sqrt transformation Std.errors:\n",c - se,"\n")
 
 ######## Plot ########
 
@@ -224,5 +286,6 @@ plot(as.factor(seat_comfort),overall,main='Polinomial-4 Model', xlab="seat comfo
 xx=seq(min(seat_comfort),max(seat_comfort),along.with = seat_comfort)
 ci_lin <- predict(lm(overall~I(seat_comfort^4),data=merComplete),newdata=data.frame(seat_comfort=xx),se.fit = T,interval = "confidence")
 matplot(xx,ci_lin$fit[,1],lty=1, ltw=2, col="red", type="l", add=T)
+
 
 

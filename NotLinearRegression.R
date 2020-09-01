@@ -7,10 +7,10 @@ plot(co2_emission, log(engine_capacity))
 abline(lm(co2_emission~log(engine_capacity)), col="red") 
 lines(lowess(co2_emission,log(engine_capacity)), col="blue") 
 
-model_not_linear <- lm(co2_emission ~ euro_standard + transmission_type + log(engine_capacity) +
-              fuel_type + combined_metric  + noise_level, data = tr_s_high_leverage)
-summary(model_not_linear)
-confint(model_not_linear, level=.95)
+model_not_linear_log <- lm(co2_emission ~ euro_standard + transmission_type + log(engine_capacity) +
+              fuel_type + combined_metric  + noise_level, data = tr_s)
+summary(model_not_linear_log)
+confint(model_not_linear_log, level=.95)
 
 res <- cor(my_data, use="pairwise.complete.obs")
 round(res, 2)
@@ -54,17 +54,17 @@ confint(model_not_linear, level=.95)
 train.control <- trainControl(method = "cv", number = 10)
 set.seed(6)
 model_not_linear_validation <- train(co2_emission ~ euro_standard + transmission_type + log(engine_capacity) +
-                            fuel_type + combined_metric + noise_level, data = tr_s_high_leverage, method = "lm",
+                            fuel_type + combined_metric + noise_level, data = tr_s, method = "lm",
                           trControl = train.control)
-summary(model_not_linear_validation)
-confint(model_not_linear, level=.95)
-mean((model_not_linear$residuals)^2)
-
+summary(model_not_linear_validation$finalModel)
+confint(model_not_linear_validation$finalModel, level=.95)
+mean((model_not_linear_validation$finalModel$residuals)^2)
 
 
 # ==============================================================================================
+set.seed(2)
 model_not_linear_sqrt <- lm(co2_emission ~ euro_standard + transmission_type + sqrt(engine_capacity) +
-                         fuel_type + combined_metric  + noise_level, data = tr_s_high_leverage)
+                         fuel_type + combined_metric  + noise_level, data = tr_s)
 summary(model_not_linear_sqrt)
 confint(model_not_linear_sqrt, level=.95)
 
@@ -92,15 +92,27 @@ anova(model_not_linear_sqrt, step.model_not_linear_sqrt)
 
 
 
+# ==============================================================================================
+
+set.seed(1)
+model_not_linear_poly_2 <- lm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 2) +
+                         fuel_type + combined_metric, data = tr_s)
+summary(model_not_linear_poly_2)
+confint(model_not_linear_poly_2, level=.95)
+
+set.seed(1)
+model_not_linear_poly_3 <- lm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 3) +
+                                fuel_type + combined_metric, data = tr_s)
+summary(model_not_linear_poly_3)
+confint(model_not_linear_poly_3, level=.95)
+
+set.seed(1)
+model_not_linear_poly_4 <- lm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 4) +
+                                fuel_type + combined_metric, data = tr_s)
+summary(model_not_linear_poly_4)
+confint(model_not_linear_poly_4, level=.95)
 
 
-
-
-
-
-
-
-
-
-
+anova(model_not_linear_poly_2, model_not_linear_poly_3)
+anova(model_not_linear_log, model_not_linear_sqrt)
 
