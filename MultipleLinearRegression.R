@@ -95,7 +95,7 @@ abline(lm(co2_emission~fuel_cost_6000_miles), col="red")
 lines(lowess(co2_emission,fuel_cost_6000_miles), col="blue") 
 
 set.seed(1)
-model <- lm(co2_emission ~ ., data = tr_s)
+model <- lm(co2_emission ~ . -engine_capacity, data = tr_s)
 summary(model)
 confint(model, level=.95)
 # Dall'analisi degli intervalli di confidenza si intuisce: 
@@ -163,55 +163,14 @@ plot(yfit, resid, ylab="Residui", xlab="Fitted", main="Residui vs fitted")
 plot.new()
 boxplot(tr_s_1)$co2_emission
 
-Q <- quantile(tr_s_1$combined_metric, probs=c(.25, .75), na.rm = FALSE)
+LargeResiduals <- abs(rstudent(model)) > 3
+tr_s_outliers <- tr_s_1[!LargeResiduals,]
+set.seed(4)
 
-##differenza del 75 esimo e del 25esimo percentile 
-iqr <- IQR(tr_s_1$combined_metric)
-up <-  Q[2]+1.5*iqr # Upper Range  
-low<- Q[1]-1.5*iqr # Lower Range
-
-tr_s_outliers<- subset(tr_s_1, tr_s_1$combined_metric> low & tr_s_1$combined_metric< up)
-boxplot(tr_s_outliers)$co2_emission
-
-##metodo IQR per trovare gli outlier:
-
-## restituzione del 25 esimo e 75 esimo percentile del set di dati 
-Q <- quantile(tr_s_outliers$noise_level, probs=c(.25, .75), na.rm = FALSE)
-
-##differenza del 75 esimo e del 25esimo percentile 
-iqr <- IQR(tr_s_outliers$noise_level)
-
-## ci calcoliamo gli intervalli oltre i quali tutti i punti sono outlier
-
- up <-  Q[2]+1.5*iqr # Upper Range  
- low<- Q[1]-1.5*iqr # Lower Range
-
-# ==============================================================
-# ELIMINAZIONE OUTLIER 
-# ==============================================================
-
-set.seed(15)
-tr_s_outliers<- subset(tr_s_outliers, tr_s_outliers$noise_level> low & tr_s_outliers$noise_level< up)
-
-boxplot(tr_s_outliers)$co2_emission
-
-
-set.seed(3)
-model_without_outliers <- lm(co2_emission ~ ., data = tr_s_outliers)
-summary(model_without_outliers)
-
-
-# ==============================================================
-# Confronto con e senza outliers: 
-# ==============================================================
-model_1 <- lm(co2_emission ~ ., data = tr_s_1)
-summary(model_1)
-model_2 <- lm(co2_emission ~ ., data = tr_s_outliers)
-summary(model_2)
+model_outliers<-lm(co2_emission ~ ., data = tr_s_outliers)
+summary(model_outliers)
 
 boxplot(tr_s_outliers)$co2_emission 
-
-# si osserva un RSE di due punti più basso, quindi si procede con il modello senza outliers
 
 
 
@@ -225,18 +184,14 @@ boxplot(tr_s_outliers)$co2_emission
 # Plot dei 5 punti a maggior influenza
 plot(model_without_outliers, 4, id.n = 5)
 
-HighLeverage <- cooks.distance(model_without_outliers) > (11/(nrow(tr_s_outliers)))
-LargeResiduals <- rstudent(model_without_outliers) > 3
-tr_s_high_leverage <- tr_s_outliers[!HighLeverage & !LargeResiduals,]
-set.seed(4)
-model_high_leverage<-lm(co2_emission ~ ., data = tr_s_high_leverage)
+# HighLeverage <- cooks.distance(model_without_outliers) > (11/(nrow(tr_s_outliers)))
 
 boxplot(tr_s_high_leverage)$co2_emission 
 # ==============================================================
 # Confronto con e senza high leverage point: 
 # ==============================================================
 
-summary(model_2)
+summary(model_outliers)
 summary(model_high_leverage)
 
 # si osserva un RSE di due punti più basso, quindi si procede con il modello senza punti high leverage
@@ -254,27 +209,26 @@ dev.off()
 corrplot(res, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45, method ="number")
 
-car::vif(model_2)
+car::vif(model_outliers)
 
 # DOPO LE RIFLESSIONI: sono stati eliminati i regressori che presentano un VIF oltre i 10 e che sono in correlazione con altri regressori con VIF minore di 10 (year). 
 # SI sono analizzati 3 possibili scenari: Fuel_cost6000, Combine Metric ed Extra Urban Metric: 
+
+
+set.seed(1)
+model_year <- lm(co2_emission ~ . - year, data = tr_s_outliers)
+summary(model_year)
+confint(model_year, level=.95)
+car::vif(model_year)
 
 # ==============================================================
 # COMBINE METRIC: 
 # ==============================================================
 set.seed(2)
 model_reduced_collinearity_CM <- lm(co2_emission ~ euro_standard + transmission_type +
-             fuel_type + combined_metric  + noise_level, data = tr_s_outliers)
+             fuel_type + combined_metric + noise_level, data = tr_s_outliers)
 summary(model_reduced_collinearity_CM)
 confint(model_reduced_collinearity_CM, level=.95)
-
-res <- cor(my_data, use="pairwise.complete.obs")
-round(res, 2)
-dev.new()
-plot.new()
-dev.off()
-corrplot(res, type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45, method ="number")
 car::vif(model_reduced_collinearity_CM)
 
 
@@ -421,40 +375,3 @@ plot(y_pred_step_model)
 set.seed(8)
 y_pred_validation = predict(model_reduced_collinearity_CM, newdata = t_s, interval = 'confidence')
 plot(y_pred_validation)
-
-
-# ==============================================================
-# BOOTSTRAP
-# ==============================================================
-
-
-boot.fn=function(data,index){
-  return(coef(lm(co2_emission~year + euro_standard + transmission_type + engine_capacity +
-                   fuel_type + fuel_cost_6000_miles + noise_level, data = data,subset=index)))
-}
-n = nrow(tr_s_outliers)
-qrt(sum((model$residuals)^2)/21)
-boot.fn(tr_s_outliers, 1:n)
-
-# Boot estimate is not deterministic
-boot.fn(tr_s_outliers,sample(1:n, 79576,replace=T))
-boot.fn(tr_s_outliers,sample(1:n, 79576,replace=T))
-# We use the boot() function to compute the standard errors 
-# of 1,000 bootstrap estimates for the intercept and slope terms.
-b = boot(tr_s_outliers ,boot.fn ,1000)
-
-s = summary(lm(model_validation, data = tr_s_outliers))
-
-# Take all std. errors of the bootstrap estimate 
-x <- capture.output(b)
-x <- str_extract(x, "^t[0-9.]+.*$")
-x <- x[!is.na(x)]
-se <- as.numeric(unlist(str_extract_all(x, '[0-9.]+$')))
-
-# Take all std. errors of the linear model
-c = s$coefficients[ ,2]
-c = as.numeric(c)
-
-cat("\nDifference between no-Transformation Std.errors:\n",c - se,"\n")
-
-mean((model_reduced_collinearity_CM$residuals)^2)
