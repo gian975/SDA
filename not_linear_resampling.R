@@ -1,4 +1,5 @@
 attach(tr_s)
+attach(t_s)
 
 model_not_linear_sqrt <- (co2_emission ~ euro_standard + transmission_type + sqrt(engine_capacity) +
                               fuel_type + combined_metric  + noise_level)
@@ -16,48 +17,49 @@ model_not_linear_poly_4 <-(co2_emission ~ euro_standard + transmission_type + po
                              fuel_type + combined_metric)
 
 n = nrow(tr_s)
+c= nrow((t_s))
 
 ######### Validation Set Approch #########
-train=sample(1:n,n/2)
-test=(-train)
+train=sample(1:n,n)
+test=sample(1:c,c)
 set.seed(1)
 lm.fit=lm(model_not_linear_sqrt, data = tr_s , subset = train)
 
-# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
-y_true=tr_s$co2_emission
-y_predict=predict(lm.fit,tr_s)
+# the estimated test MSE for the linear regression fit is:
+y_true=t_s$co2_emission
+y_predict=predict(lm.fit,t_s)
 mean(((y_true-y_predict)[test])^2)
 
 #Poly 2 trasformation
 set.seed(1)
 lm.fit=lm(model_not_linear_poly_2, data = tr_s , subset = train)
-# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
-y_true=tr_s$co2_emission
-y_predict=predict(lm.fit,tr_s)
+# the estimated test MSE for the linear regression fit is:
+y_true=t_s$co2_emission
+y_predict=predict(lm.fit,t_s)
 mean(((y_true-y_predict)[test])^2)
 
 #Poly 3 trasformation
 set.seed(1)
 lm.fit=lm(model_not_linear_poly_3, data = tr_s , subset = train)
-# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
-y_true=tr_s$co2_emission
-y_predict=predict(lm.fit,tr_s)
+# the estimated test MSE for the linear regression fit is:
+y_true=t_s$co2_emission
+y_predict=predict(lm.fit,t_s)
 mean(((y_true-y_predict)[test])^2)
 
 #Poly 4 trasformation
 set.seed(1)
 lm.fit=lm(model_not_linear_poly_4, data = tr_s , subset = train)
 # the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
-y_true=tr_s$co2_emission
-y_predict=predict(lm.fit,tr_s)
+y_true=t_s$co2_emission
+y_predict=predict(lm.fit,t_s)
 mean(((y_true-y_predict)[test])^2)
 
 #Log trasformation
 set.seed(1)
 lm.fit=lm(model_not_linear_log, data = tr_s , subset = train)
-# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
-y_true=tr_s$co2_emission
-y_predict=predict(lm.fit,tr_s)
+# the estimated test MSE for the linear regression fit is:
+y_true=t_s$co2_emission
+y_predict=predict(lm.fit,t_s)
 mean(((y_true-y_predict)[test])^2)
 
 
@@ -77,7 +79,6 @@ for (i in 1:4){
   cv.error[i]=cv.glm(tr_s_high_leverage,glm.fit, K=10)$delta[1]
 }
 cv.error
-## we obtain a test error higher -> 74.30688 73.93336 74.07724 74.46966
 
 
 ########## Bootstrap ##########
