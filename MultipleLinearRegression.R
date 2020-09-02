@@ -50,7 +50,7 @@ set.seed(10)
 tr_s = subset(my_data, split == TRUE)
 tr_s_1 = tr_s[, c(1,2,3,5,6,7,8,9,10,11)]
 t_s = subset(my_data, split == FALSE)
-t_s_1=t_s[, c(1,2,3,5,6,7,8,9,10,11)]
+t_s_1 = t_s[, c(1,2,3,5,6,7,8,9,10,11)]
 
 
 
@@ -98,6 +98,14 @@ set.seed(1)
 model <- lm(co2_emission ~ . -engine_capacity, data = tr_s)
 summary(model)
 confint(model, level=.95)
+
+set.seed(5)
+step.model <- stepAIC(model, direction = "both", scope = formula(model), trace = FALSE)
+step.model$anova
+confint(step.model, level=.95)
+summary(step.model)
+
+
 # Dall'analisi degli intervalli di confidenza si intuisce: 
 # 1) Tutti i regressori sono statisticamente significativi in quanto il loro intervallo di confidenza non comprende il valore 0
 # 2) Sono da considerare maggiornmente signficativi i regressori con intervallo di confidenza stretto e lontano dallo zero
@@ -163,6 +171,7 @@ plot(yfit, resid, ylab="Residui", xlab="Fitted", main="Residui vs fitted")
 plot.new()
 boxplot(tr_s_1)$co2_emission
 
+#set.seed(2)
 LargeResiduals <- abs(rstudent(model)) > 3
 tr_s_outliers <- tr_s_1[!LargeResiduals,]
 set.seed(4)
@@ -237,20 +246,15 @@ car::vif(model_reduced_collinearity_CM)
 # FUEL COST 6000: 
 # ==============================================================
 model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmission_type +
-                                      fuel_type + fuel_cost_6000_miles  + noise_level + extra_urban_metric, data = tr_s_outliers)
+                                      fuel_type + fuel_cost_6000_miles  + noise_level, data = tr_s_outliers)
+
+model_reduced_collinearity_FC6000 <- lm(co2_emission ~  fuel_type + combined_metric, data = tr_s_outliers)
 summary(model_reduced_collinearity_FC6000 )
 confint(model_reduced_collinearity_FC6000 , level=.95)
-
-res <- cor(my_data, use="pairwise.complete.obs")
-round(res, 2)
-dev.new()
-plot.new()
-dev.off()
-corrplot(res, type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45, method ="number")
 car::vif(model_reduced_collinearity_FC6000 )
 
 
+anova(model_reduced_collinearity_CM, model_reduced_collinearity_FC6000)
 
 # ==============================================================
 # URBAN METRIC: L'analisi si ferma qua perchè fa schifo
@@ -259,14 +263,6 @@ model_reduced_collinearity_EUM <- lm(co2_emission ~ euro_standard + transmission
                                noise_level + urban_metric + extra_urban_metric, data = tr_s_outliers)
 summary(model_reduced_collinearity_EUM)
 confint(model_reduced_collinearity_EUM, level=.95)
-
-res <- cor(my_data, use="pairwise.complete.obs")
-round(res, 2)
-dev.new()
-plot.new()
-dev.off()
-corrplot(res, type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45, method ="number")
 car::vif(model_reduced_collinearity_EUM )
 
 # ==============================================================
@@ -275,7 +271,7 @@ car::vif(model_reduced_collinearity_EUM )
 set.seed(5)
 step.model_CM <- stepAIC(model_reduced_collinearity_CM, direction = "both", scope = formula(model_reduced_collinearity_CM), trace = FALSE)
 step.model_CM$anova
-confint(step.model, level=.95)
+confint(step.model_CM, level=.95)
 summary(step.model_CM)
 
 set.seed(5)
@@ -293,6 +289,8 @@ anova(model_reduced_collinearity_CM, step.model_CM)
 
 x <-regsubsets(co2_emission~euro_standard + transmission_type +
                  fuel_type + combined_metric  + noise_level, data=tr_s_outliers, nvmax = 6, method = "seqrep")
+x <-regsubsets(co2_emission~euro_standard + transmission_type +
+                 fuel_type + combined_metric  + noise_level, data=tr_s_outliers, nvmax = 6, method = "forward")
 summary(x)
 
 set.seed(100)
@@ -301,13 +299,6 @@ model_reduced_collinearity_CM <- lm(co2_emission ~ euro_standard + transmission_
 summary(model_reduced_collinearity_CM)
 confint(model_reduced_collinearity_CM, level=.95)
 
-res <- cor(my_data, use="pairwise.complete.obs")
-round(res, 2)
-dev.new()
-plot.new()
-dev.off()
-corrplot(res, type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45, method ="number")
 car::vif(model_reduced_collinearity_CM)
 
 # ==============================================================
@@ -323,14 +314,6 @@ model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmiss
                                           fuel_type + fuel_cost_6000_miles + noise_level, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_FC6000 )
 confint(model_reduced_collinearity_FC6000 , level=.95)
-
-res <- cor(my_data, use="pairwise.complete.obs")
-round(res, 2)
-dev.new()
-plot.new()
-dev.off()
-corrplot(res, type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45, method ="number")
 car::vif(model_reduced_collinearity_FC6000 )
 
 
@@ -340,14 +323,6 @@ model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmiss
                                           fuel_type + fuel_cost_6000_miles, data = tr_s_high_leverage)
 summary(model_reduced_collinearity_FC6000 )
 confint(model_reduced_collinearity_FC6000 , level=.95)
-
-res <- cor(my_data, use="pairwise.complete.obs")
-round(res, 2)
-dev.new()
-plot.new()
-dev.off()
-corrplot(res, type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45, method ="number")
 car::vif(model_reduced_collinearity_FC6000 )
 
 
@@ -360,18 +335,24 @@ anova(x, model_reduced_collinearity_FC6000)
 train.control <- trainControl(method = "cv", number = 10)
 set.seed(6)
 model_validation <- train(co2_emission ~ euro_standard + transmission_type +
-                            fuel_type + combined_metric, data = tr_s_outliers, method = "lm",
+                            fuel_type + combined_metric + noise_level, data = tr_s_outliers, method = "lm",
                trControl = train.control)
 summary(model_validation)
-mean((model_reduced_collinearity_CM$residuals)^2)
-
+mean((model_validation$finalModel$residuals)^2)
+mean((model_reduced_collinearity_CM_min$residuals)^2)
 # ==============================================================
 # TEST PREDICTION
 # ==============================================================
-set.seed(7)
-y_pred_step_model = predict(step.model, newdata = t_s, interval = 'confidence')
-plot(y_pred_step_model)
-
 set.seed(8)
-y_pred_validation = predict(model_reduced_collinearity_CM, newdata = t_s, interval = 'confidence')
-plot(y_pred_validation)
+y_pred = predict(model_reduced_collinearity_CM, newdata = t_s, interval = 'predict')
+y_pred
+
+set.seed(7)
+model_reduced_collinearity_CM_min <- lm(co2_emission ~ fuel_type + combined_metric, data = tr_s_outliers)
+y_pred_step_model = predict(model_reduced_collinearity_CM_min, newdata = t_s, interval = 'predict')
+y_pred
+mean((model_reduced_collinearity_CM_min$residuals)^2)
+
+
+
+

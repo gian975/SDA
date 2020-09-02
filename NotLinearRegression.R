@@ -8,20 +8,16 @@ abline(lm(co2_emission~log(engine_capacity)), col="red")
 lines(lowess(co2_emission,log(engine_capacity)), col="blue") 
 
 model_not_linear_log <- lm(co2_emission ~ euro_standard + transmission_type + log(engine_capacity) +
-              fuel_type + combined_metric  + noise_level, data = tr_s)
+                              fuel_type + combined_metric  + noise_level, data = tr_s)
+
+model_not_linear_log <- lm(co2_emission ~ euro_standard + transmission_type + log(engine_capacity) +
+                             fuel_type + poly(fuel_cost_6000_miles, 3)  + noise_level, data = tr_s)
+
 summary(model_not_linear_log)
 confint(model_not_linear_log, level=.95)
+car::vif(model_not_linear_log)
+plot(model_not_linear_log)
 
-res <- cor(my_data, use="pairwise.complete.obs")
-round(res, 2)
-dev.new()
-plot.new()
-dev.off()
-corrplot(res, type = "upper", order = "hclust", 
-         tl.col = "black", tl.srt = 45, method ="number")
-car::vif(model_not_linear)
-
-plot(model_not_linear)
 
 
 # ==============================================================
