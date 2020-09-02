@@ -1,25 +1,63 @@
+attach(tr_s)
 
-attach(tr_s_1)
-attach(tr_s_outliers)
+model_not_linear_sqrt <- (co2_emission ~ euro_standard + transmission_type + sqrt(engine_capacity) +
+                              fuel_type + combined_metric  + noise_level)
 
-model_reduced_collinearity_CM <-(co2_emission ~ euro_standard + transmission_type +
-                                      fuel_type + combined_metric  + noise_level)
+model_not_linear_log <- (co2_emission ~ euro_standard + transmission_type + log(engine_capacity) +
+                             fuel_type + combined_metric  + noise_level)
 
-n = nrow(tr_s_outliers)
-c=nrow(t_s_1)
+model_not_linear_poly_2 <-(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 2) +
+                                fuel_type + combined_metric)
 
+model_not_linear_poly_3 <-(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 3) +
+                             fuel_type + combined_metric)
+
+model_not_linear_poly_4 <-(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 4) +
+                             fuel_type + combined_metric)
+
+n = nrow(tr_s)
 
 ######### Validation Set Approch #########
-train=sample(1:n,n)
-test=sample(1:c,c)
+train=sample(1:n,n/2)
+test=(-train)
 set.seed(1)
-lm.fit=lm(model_reduced_collinearity_CM, data = tr_s_outliers , subset = train)
+lm.fit=lm(model_not_linear_sqrt, data = tr_s , subset = train)
 
 # the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
+y_true=tr_s$co2_emission
+y_predict=predict(lm.fit,tr_s)
+mean(((y_true-y_predict)[test])^2)
 
+#Poly 2 trasformation
+set.seed(1)
+lm.fit=lm(model_not_linear_poly_2, data = tr_s , subset = train)
+# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
+y_true=tr_s$co2_emission
+y_predict=predict(lm.fit,tr_s)
+mean(((y_true-y_predict)[test])^2)
 
-y_true=tr_s_outliers$co2_emission
-y_predict=predict(lm.fit,tr_s_outliers)
+#Poly 3 trasformation
+set.seed(1)
+lm.fit=lm(model_not_linear_poly_3, data = tr_s , subset = train)
+# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
+y_true=tr_s$co2_emission
+y_predict=predict(lm.fit,tr_s)
+mean(((y_true-y_predict)[test])^2)
+
+#Poly 4 trasformation
+set.seed(1)
+lm.fit=lm(model_not_linear_poly_4, data = tr_s , subset = train)
+# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
+y_true=tr_s$co2_emission
+y_predict=predict(lm.fit,tr_s)
+mean(((y_true-y_predict)[test])^2)
+
+#Log trasformation
+set.seed(1)
+lm.fit=lm(model_not_linear_log, data = tr_s , subset = train)
+# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
+y_true=tr_s$co2_emission
+y_predict=predict(lm.fit,tr_s)
 mean(((y_true-y_predict)[test])^2)
 
 
@@ -48,37 +86,7 @@ cv.error
 # for the intercept and slope terms by randomly sampling from among the observations with replacement
 # We will compare the estimates obtained using the bootstrap to those obtained using the previous models
 library(stringr)
-indice=nrow(tr_s_outliers)
-
-# No-transformation
-set.seed (2)
-boot.fn=function(data,index){
-  return(coef(lm(co2_emission ~ euro_standard + transmission_type +
-                   fuel_type + combined_metric  + noise_level, data = tr_s_outliers,subset=index)))
-}
-boot.fn(tr_s_outliers, 1:indice)
-
-# Boot estimate is not deterministic
-boot.fn(tr_s_outliers,sample(1:n, 45441,replace=T))
-boot.fn(tr_s_outliers,sample(1:n, 45441,replace=T))
-# We use the boot() function to compute the standard errors 
-# of 1,000 bootstrap estimates for the intercept and slope terms.
-b = boot(tr_s_outliers ,boot.fn ,1000)
-
-s = summary(lm(model_reduced_collinearity_CM, data = tr_s_outliers))
-
-# Take all std. errors of the bootstrap estimate 
-x <- capture.output(b)
-x <- str_extract(x, "^t[0-9.]+.*$")
-x <- x[!is.na(x)]
-se <- as.numeric(unlist(str_extract_all(x, '[0-9.]+$')))
-
-# Take all std. errors of the linear model
-c = s$coefficients[ ,2]
-c = as.numeric(c)
-
-cat("\nDifference between no-Transformation Std.errors:\n",c - se,"\n")
-
+indice=nrow(tr_s)
 
 # Polinomials-2 no-linear transformation
 set.seed (2)
@@ -94,7 +102,7 @@ boot.fn=function(data,index){
 }
 boot.fn(tr_s, 1:indice)
 
-boot.fn(tr_s,sample(1:indice, 45441,replace=T))
+boot.fn(tr_s,sample(1:indice, 36350,replace=T))
 
 # We use the boot() function to compute the standard errors 
 # of 1,000 bootstrap estimates for the intercept and slope terms.
@@ -129,7 +137,7 @@ boot.fn=function(data,index){
 }
 boot.fn(tr_s, 1:indice)
 
-boot.fn(tr_s,sample(1:indice, 45441,replace=T))
+boot.fn(tr_s,sample(1:indice, 36350,replace=T))
 
 # We use the boot() function to compute the standard errors 
 # of 1,000 bootstrap estimates for the intercept and slope terms.
@@ -164,7 +172,7 @@ boot.fn=function(data,index){
 }
 boot.fn(tr_s, 1:indice)
 
-boot.fn(tr_s,sample(1:indice, 45441,replace=T))
+boot.fn(tr_s,sample(1:indice, 36350,replace=T))
 
 # We use the boot() function to compute the standard errors 
 # of 1,000 bootstrap estimates for the intercept and slope terms.
@@ -200,7 +208,7 @@ boot.fn=function(data,index){
 }
 boot.fn(tr_s, 1:indice)
 
-boot.fn(tr_s,sample(1:indice, 45441,replace=T))
+boot.fn(tr_s,sample(1:indice, 36350,replace=T))
 
 # We use the boot() function to compute the standard errors 
 # of 1,000 bootstrap estimates for the intercept and slope terms.
@@ -236,7 +244,7 @@ boot.fn=function(data,index){
 }
 boot.fn(tr_s, 1:indice)
 
-boot.fn(tr_s,sample(1:indice, 45441,replace=T))
+boot.fn(tr_s,sample(1:indice, 36350,replace=T))
 
 # We use the boot() function to compute the standard errors 
 # of 1,000 bootstrap estimates for the intercept and slope terms.
