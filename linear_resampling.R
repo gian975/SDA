@@ -1,22 +1,21 @@
 attach(tr_s_outliers)
+attach(t_s_1)
 
 model_reduced_collinearity_CM <-(co2_emission ~ euro_standard + transmission_type +
                                       fuel_type + combined_metric  + noise_level)
 
 
 n = nrow(tr_s_outliers)
+c = nrow(t_s_1)
 
 ######### Validation Set Approch #########
-train=sample(1:n,n/2)
-test=(-train)
+train=sample(1:n,n)
+test=sample(1:c,c)
 set.seed(1)
 lm.fit=lm(model_reduced_collinearity_CM, data = tr_s_outliers , subset = train)
 
-# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
-
-
-y_true=tr_s_outliers$co2_emission
-y_predict=predict(lm.fit,tr_s_outliers)
+y_true=t_s_1$co2_emission
+y_predict=predict(lm.fit,t_s_1)
 mean(((y_true-y_predict)[test])^2)
 
 
@@ -36,7 +35,7 @@ for (i in 1:4){
   cv.error[i]=cv.glm(tr_s_high_leverage,glm.fit, K=10)$delta[1]
 }
 cv.error
-## we obtain a test error higher -> 74.30688 73.93336 74.07724 74.46966
+
 
 
 ########## Bootstrap ##########
