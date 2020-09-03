@@ -47,7 +47,7 @@ mean(((y_true-y_predict)[test])^2)
 #Poly 4 trasformation
 set.seed(1)
 lm.fit=lm(model_not_linear_poly_4, data = data_complete_1 , subset = train)
-# the estimated test MSE for the linear regression fit is 33.51284 (seed=1)
+# the estimated test MSE for the linear regression fit is :
 y_true=data_complete_1$co2_emission
 y_predict=predict(lm.fit,data_complete_1)
 mean(((y_true-y_predict)[test])^2)
@@ -60,25 +60,98 @@ y_true=data_complete_1$co2_emission
 y_predict=predict(lm.fit,data_complete_1)
 mean(((y_true-y_predict)[test])^2)
 
-
-########## K-Fold Cross Validation ##########
+# ==============================================================
+# K-Fold Cross Validation
+# ==============================================================
+#Polinomial 2
 library(boot)
+model_not_linear_poly_2 <- lm(co2_emission ~ euro_standard + transmission_type +
+                                      fuel_type + combined_metric + noise_level, data = data_complete_1)
 
-glm.fit=glm(fit.linear ,data=data_complete)
+glm.fit=glm(model_not_linear_poly_2 ,data=data_complete_1)
 
-cv.err=cv.glm(tr_s_high_leverage,glm.fit, K = 10)
-cv.err$delta # The K-Fold Cross validation estimate for the test error is approximately  48.12944 (seed=1).
+cv.err=cv.glm(data_complete_1,glm.fit, K = 10)
+cv.err$delta 
 
-# K-Fold Cross validation for polynomial regressions with orders i=1,2,...,4.
-
-cv.error=rep(0,4)
-for (i in 1:4){
-  glm.fit=glm(fit.poly2, data = data_complete)
-  cv.error[i]=cv.glm(tr_s_high_leverage,glm.fit, K=10)$delta[1]
+cv.error=rep(0,2)
+for (i in 1:2){
+  glm.fit=glm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 2) +
+                fuel_type + combined_metric, data = data_complete_1)
+  cv.error[i]=cv.glm(data_complete_1,glm.fit, K=10)$delta[1]
 }
 cv.error
 
+#Polinomial 3
+library(boot)
+model_not_linear_poly_3 <- lm(co2_emission ~ euro_standard + transmission_type +
+                                fuel_type + combined_metric + noise_level, data = data_complete_1)
 
+glm.fit=glm(model_not_linear_poly_3 ,data=data_complete_1)
+
+cv.err=cv.glm(data_complete_1,glm.fit, K = 10)
+cv.err$delta 
+
+cv.error=rep(0,3)
+for (i in 1:3){
+  glm.fit=glm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 3) +
+                fuel_type + combined_metric, data = data_complete_1)
+  cv.error[i]=cv.glm(data_complete_1,glm.fit, K=10)$delta[1]
+}
+cv.error
+
+#Polinomial 4
+library(boot)
+model_not_linear_poly_4 <- lm(co2_emission ~ euro_standard + transmission_type +
+                                fuel_type + combined_metric + noise_level, data = data_complete_1)
+
+glm.fit=glm(model_not_linear_poly_4 ,data=data_complete_1)
+
+cv.err=cv.glm(data_complete_1,glm.fit, K = 10)
+cv.err$delta 
+
+cv.error=rep(0,4)
+for (i in 1:4){
+  glm.fit=glm(co2_emission ~ euro_standard + transmission_type + poly(engine_capacity, 4) +
+                fuel_type + combined_metric, data = data_complete_1)
+  cv.error[i]=cv.glm(data_complete_1,glm.fit, K=10)$delta[1]
+}
+cv.error
+
+#Log trasformation
+library(boot)
+model_not_linear_log <- lm(co2_emission ~ euro_standard + transmission_type +
+                                fuel_type + combined_metric + noise_level, data = data_complete_1)
+
+glm.fit=glm(model_not_linear_log ,data=data_complete_1)
+
+cv.err=cv.glm(data_complete_1,glm.fit, K = 10)
+cv.err$delta 
+
+cv.error=rep(0,1)
+for (i in 1:1){
+  glm.fit=glm(co2_emission ~ euro_standard + transmission_type + log(engine_capacity) +
+                fuel_type + combined_metric, data = data_complete_1)
+  cv.error[i]=cv.glm(data_complete_1,glm.fit, K=10)$delta[1]
+}
+cv.error
+
+#SQRT trasformation
+library(boot)
+model_not_linear_sqrt <- lm(co2_emission ~ euro_standard + transmission_type +
+                             fuel_type + combined_metric + noise_level, data = data_complete_1)
+
+glm.fit=glm(model_not_linear_sqrt ,data=data_complete_1)
+
+cv.err=cv.glm(data_complete_1,glm.fit, K = 10)
+cv.err$delta 
+
+cv.error=rep(0,1)
+for (i in 1:1){
+  glm.fit=glm(co2_emission ~ euro_standard + transmission_type + sqrt(engine_capacity) +
+                fuel_type + combined_metric, data = data_complete_1)
+  cv.error[i]=cv.glm(data_complete_1,glm.fit, K=10)$delta[1]
+}
+cv.error
 ########## Bootstrap ##########
 
 # The boot.fn() function can also be used in order to create bootstrap estimates 

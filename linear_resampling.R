@@ -17,6 +17,28 @@ y_true=tr_s_outliers$co2_emission
 y_predict=predict(lm.fit,tr_s_outliers)
 mean(((y_true-y_predict)[test])^2)
 
+# ==============================================================
+# K-Fold Cross Validation
+# ==============================================================
+
+library(boot)
+model_reduced_collinearity_CM <- lm(co2_emission ~ euro_standard + transmission_type +
+                              fuel_type + combined_metric + noise_level, data = tr_s_outliers)
+
+glm.fit=glm(model_reduced_collinearity_CM ,data=tr_s_outliers)
+
+cv.err=cv.glm(tr_s_outliers,glm.fit, K = 10)
+cv.err$delta 
+
+cv.error=rep(0,1)
+for (i in 1:1){
+  glm.fit=glm(co2_emission~euro_standard + transmission_type +
+                fuel_type + combined_metric + noise_level, data = tr_s_outliers)
+  cv.error[i]=cv.glm(tr_s_outliers,glm.fit, K=10)$delta[1]
+}
+cv.error
+# We still see little evidence that using cubic or higher-order polynomial terms leads to lower test error than simply
+
 
 ########## Bootstrap ##########
 

@@ -300,48 +300,6 @@ summary(model_reduced_collinearity_CM_2)
 confint(model_reduced_collinearity_CM_2, level=.95)
 MSE_training_CM_2 = mean((model_reduced_collinearity_CM_2$residuals)^2)
 
-# ==============================================================
-# K-Fold Cross Validation
-# ==============================================================
-
-library(boot)
-model_validation_CM_5 <- lm(co2_emission ~ euro_standard + transmission_type +
-                              fuel_type + combined_metric + noise_level, data = tr_s_outliers)
-
-glm.fit=glm(model_validation_CM_5 ,data=tr_s_outliers)
-
-cv.err=cv.glm(tr_s_outliers,glm.fit, K = 10)
-cv.err$delta # The K-Fold Cross validation estimate for the test error is approximately 1.102361 (seed=1).
-
-# K-Fold Cross validation for polynomial regressions with orders i=1,2,...,4.
-
-cv.error=rep(0,1)
-for (i in 1:1){
-  glm.fit=glm(co2_emission~euro_standard + transmission_type +
-                fuel_type + combined_metric + noise_level, data = tr_s_outliers)
-  cv.error[i]=cv.glm(tr_s_outliers,glm.fit, K=10)$delta[1]
-}
-cv.error
-# We still see little evidence that using cubic or higher-order polynomial terms leads to lower test error than simply
-
-
-
-library(boot)
-model_validation_CM_2 <- lm(co2_emission ~ combined_metric + fuel_type, data = tr_s_outliers)
-glm.fit=glm(model_validation_CM_2 ,data=tr_s_outliers)
-
-cv.err=cv.glm(tr_s_outliers,glm.fit, K = 10)
-cv.err$delta # The K-Fold Cross validation estimate for the test error is approximately 1.102361 (seed=1).
-
-# K-Fold Cross validation for polynomial regressions with orders i=1,2,...,4.
-
-cv.error=rep(0,1)
-for (i in 1:1){
-  glm.fit=glm(co2_emission ~ combined_metric + fuel_type, data = tr_s_outliers)
-  cv.error[i]=cv.glm(tr_s_outliers,glm.fit, K=10)$delta[1]
-}
-cv.error
-# We still see little evidence that using cubic or higher-order polynomial terms leads to lower test error than simply
 
 # ==============================================================
 # TEST PREDICTION
