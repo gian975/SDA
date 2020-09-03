@@ -44,7 +44,7 @@ names(data_complete)
 
 
 attach(data_complete)
-data_complete <- data_complete[,c(3,7,8,9,10,11,12,13,14,15,16)]
+data_complete_1 <- data_complete[,c(3,7,8,9,10,11,12,13,14,15,16)]
 
 plot(co2_emission, year)
 abline(lm(co2_emission~year), col="red") 
@@ -87,7 +87,7 @@ abline(lm(co2_emission~fuel_cost_6000_miles), col="red")
 lines(lowess(co2_emission,fuel_cost_6000_miles), col="blue") 
 
 set.seed(1)
-model <- lm(co2_emission ~ . -engine_capacity, data = data_complete)
+model <- lm(co2_emission ~ . -engine_capacity, data = data_complete_1)
 summary(model)
 confint(model, level=.95)
 
@@ -163,9 +163,10 @@ plot(yfit, resid, ylab="Residui", xlab="Fitted", main="Residui vs fitted")
 plot.new()
 boxplot(data_complete)$co2_emission
 
+data_complete_2 <- data_complete_1[, c(1,2,3,5,6,7,8,9,10,11)]
 #set.seed(2)
 LargeResiduals <- abs(rstudent(model)) > 3
-tr_s_outliers <- tr_s_1[!LargeResiduals,]
+tr_s_outliers <- data_complete_2[!LargeResiduals,]
 set.seed(4)
 
 model_outliers<-lm(co2_emission ~ ., data = tr_s_outliers)
