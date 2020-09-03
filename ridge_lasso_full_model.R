@@ -1,5 +1,5 @@
 library(glmnet)
-attach(tr_s_1)
+attach(data_complete_2)
 
 
 fit.linear <- (co2_emission ~ year + euro_standard + transmission_type +
@@ -11,9 +11,9 @@ fit.linear <- (co2_emission ~ year + euro_standard + transmission_type +
 # variables into dummy variables (recommended).
 # The latter property is important because glmnet() can only take numerical, quantitative inputs.
 
-x = model.matrix(fit.linear, tr_s_1)[,-1] #[-1] means no intercept
+x = model.matrix(fit.linear, data_complete_2)[,-1] #[-1] means no intercept
 
-y = tr_s_1$co2_emission
+y = data_complete_2$co2_emission
 
 
 #=================================
@@ -55,7 +55,7 @@ predict(ridge.mod,s=50,type="coefficients")[1:10,]
 # Validation approach to estimate test error
 set.seed(1)
 
-n = nrow(tr_s_1)
+n = nrow(data_complete_2)
 
 train=sample(1:n,n/2)
 test=(-train)
@@ -136,20 +136,12 @@ mean((lasso.pred-y.test)^2)
 lasso.pred=predict(lasso.mod,s=0,newx=x[test,],exact=T,x=x[train,],y=y[train])
 mean((lasso.pred-y.test)^2)
 # However, the lasso has a substantial advantage:
-# 1 of the 11 coefficient estimates is exactly zero (extra_urban_metric) .
+
 out=glmnet(x,y,alpha=1,lambda=grid)
 lasso.coef=predict(out,type="coefficients",s=bestlam)[1:10,]
 lasso.coef
 lasso.coef[lasso.coef!=0]
 cat("Number of coefficients equal to 0:",sum(lasso.coef==0),"\n")
 
-# compare with OLS when only selected predictors are included. 
-
-fit.lm=lm(fit.linear <- (co2_emission ~ euro_standard + fuel_cost_6000_miles + fuel_type + engine_capacity + year + transmission_type
-                         + noise_level + combined_metric + urban_metric ), data=tr_s)
-coef(fit.lm)
-lasso.coef=predict(out,type="coefficients",s=0)[1:11,]
-lasso.coef
-# coef(lm(Salary~., data=Hitters)) # differences on the 3rd place
 
 

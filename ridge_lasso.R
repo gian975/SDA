@@ -135,20 +135,10 @@ mean((lasso.pred-y.test)^2)
 lasso.pred=predict(lasso.mod,s=0,newx=x[test,],exact=T,x=x[train,],y=y[train])
 mean((lasso.pred-y.test)^2)
 # However, the lasso has a substantial advantage:
-# 1 of the 11 coefficient estimates is exactly zero (extra_urban_metric) .
+
 out=glmnet(x,y,alpha=1,lambda=grid)
 lasso.coef=predict(out,type="coefficients",s=bestlam)[1:6,]
 lasso.coef
 lasso.coef[lasso.coef!=0]
 cat("Number of coefficients equal to 0:",sum(lasso.coef==0),"\n")
-
-# compare with OLS when only selected predictors are included. 
-
-fit.lm=lm(fit.linear <- (co2_emission ~ euro_standard + fuel_cost_6000_miles + fuel_type + engine_capacity + year + transmission_type
-                         + noise_level + combined_metric + urban_metric ), data=tr_s)
-coef(fit.lm)
-lasso.coef=predict(out,type="coefficients",s=0)[1:11,]
-lasso.coef
-# coef(lm(Salary~., data=Hitters)) # differences on the 3rd place
-
 

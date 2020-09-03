@@ -1,41 +1,21 @@
 attach(tr_s_outliers)
-attach(t_s_1)
 
 model_reduced_collinearity_CM <-(co2_emission ~ euro_standard + transmission_type +
                                       fuel_type + combined_metric  + noise_level)
 
 
 n = nrow(tr_s_outliers)
-c = nrow(t_s_1)
+
 
 ######### Validation Set Approch #########
-train=sample(1:n,n)
-test=sample(1:c,c)
+train=sample(1:n,n/2)
+test=(-train)
 set.seed(1)
 lm.fit=lm(model_reduced_collinearity_CM, data = tr_s_outliers , subset = train)
 
-y_true=t_s_1$co2_emission
-y_predict=predict(lm.fit,t_s_1)
+y_true=tr_s_outliers$co2_emission
+y_predict=predict(lm.fit,tr_s_outliers)
 mean(((y_true-y_predict)[test])^2)
-
-
-########## K-Fold Cross Validation ##########
-library(boot)
-
-glm.fit=glm(fit.linear ,data=data_complete)
-
-cv.err=cv.glm(tr_s_high_leverage,glm.fit, K = 10)
-cv.err$delta # The K-Fold Cross validation estimate for the test error is approximately  48.12944 (seed=1).
-
-# K-Fold Cross validation for polynomial regressions with orders i=1,2,...,4.
-
-cv.error=rep(0,4)
-for (i in 1:4){
-  glm.fit=glm(fit.poly2, data = data_complete)
-  cv.error[i]=cv.glm(tr_s_high_leverage,glm.fit, K=10)$delta[1]
-}
-cv.error
-
 
 
 ########## Bootstrap ##########
@@ -55,8 +35,8 @@ boot.fn=function(data,index){
 boot.fn(tr_s_outliers, 1:indice)
 
 # Boot estimate is not deterministic
-boot.fn(tr_s_outliers,sample(1:n, 34375,replace=T))
-boot.fn(tr_s_outliers,sample(1:n, 34375,replace=T))
+boot.fn(tr_s_outliers,sample(1:n, 44918,replace=T))
+boot.fn(tr_s_outliers,sample(1:n, 44918,replace=T))
 # We use the boot() function to compute the standard errors 
 # of 1,000 bootstrap estimates for the intercept and slope terms.
 b = boot(tr_s_outliers ,boot.fn ,1000)
