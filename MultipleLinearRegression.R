@@ -44,15 +44,7 @@ names(data_complete)
 
 
 attach(data_complete)
-my_data <- data_complete[,c(3,7,8,9,10,11,12,13,14,15,16)]
-split = sample.split(my_data$co2_emission, SplitRatio = 0.8)
-set.seed(10)
-tr_s = subset(my_data, split == TRUE)
-tr_s_1 = tr_s[, c(1,2,3,5,6,7,8,9,10,11)]
-t_s = subset(my_data, split == FALSE)
-t_s_1 = t_s[, c(1,2,3,5,6,7,8,9,10,11)]
-
-
+data_complete <- data_complete[,c(3,7,8,9,10,11,12,13,14,15,16)]
 
 plot(co2_emission, year)
 abline(lm(co2_emission~year), col="red") 
@@ -95,7 +87,7 @@ abline(lm(co2_emission~fuel_cost_6000_miles), col="red")
 lines(lowess(co2_emission,fuel_cost_6000_miles), col="blue") 
 
 set.seed(1)
-model <- lm(co2_emission ~ . -engine_capacity, data = tr_s)
+model <- lm(co2_emission ~ . -engine_capacity, data = data_complete)
 summary(model)
 confint(model, level=.95)
 
@@ -169,7 +161,7 @@ plot(yfit, resid, ylab="Residui", xlab="Fitted", main="Residui vs fitted")
 # ==============================================================
 # L'analisi si effettua mediante l'utilizzo dei boxplot, i punti al di fuori del box sono considerati outliers (sotto determinate condizioni -> CODICE LUCA)
 plot.new()
-boxplot(tr_s_1)$co2_emission
+boxplot(data_complete)$co2_emission
 
 #set.seed(2)
 LargeResiduals <- abs(rstudent(model)) > 3
@@ -240,7 +232,7 @@ summary(model_reduced_collinearity_CM)
 confint(model_reduced_collinearity_CM, level=.95)
 car::vif(model_reduced_collinearity_CM)
 
-
+MSE_training_CM = mean((model_reduced_collinearity_CM$residuals)^2)
 
 # ==============================================================
 # FUEL COST 6000: 
@@ -269,10 +261,14 @@ car::vif(model_reduced_collinearity_EUM )
 # STEP-WISE SELECTION 
 # ==============================================================
 set.seed(5)
+model_reduced_collinearity_CM <- lm(co2_emission ~ euro_standard + transmission_type +
+                                      fuel_type + combined_metric + noise_level, data = tr_s_outliers)
 step.model_CM <- stepAIC(model_reduced_collinearity_CM, direction = "both", scope = formula(model_reduced_collinearity_CM), trace = FALSE)
 step.model_CM$anova
 confint(step.model_CM, level=.95)
 summary(step.model_CM)
+MSE_training_CM_Stepwise = mean((step.model_CM$residuals)^2)
+
 
 set.seed(5)
 step.model_FC6000 <- stepAIC(model_reduced_collinearity_FC6000, direction = "both", scope = formula(model_reduced_collinearity_FC6000), trace = FALSE)
@@ -288,8 +284,6 @@ anova(model_reduced_collinearity_CM, step.model_CM)
 # ==============================================================
 
 x <-regsubsets(co2_emission~euro_standard + transmission_type +
-                 fuel_type + combined_metric  + noise_level, data=tr_s_outliers, nvmax = 6, method = "seqrep")
-x <-regsubsets(co2_emission~euro_standard + transmission_type +
                  fuel_type + combined_metric  + noise_level, data=tr_s_outliers, nvmax = 6, method = "forward")
 summary(x)
 
@@ -300,6 +294,11 @@ summary(model_reduced_collinearity_CM)
 confint(model_reduced_collinearity_CM, level=.95)
 
 car::vif(model_reduced_collinearity_CM)
+
+model_reduced_collinearity_CM_2 <- lm(co2_emission ~ fuel_type + combined_metric, data = tr_s_outliers)
+summary(model_reduced_collinearity_CM_2)
+confint(model_reduced_collinearity_CM_2, level=.95)
+MSE_training_CM_2 = mean((model_reduced_collinearity_CM_2$residuals)^2)
 
 # ==============================================================
 # BEST MODEL SELECTION FC6000:  
@@ -329,29 +328,59 @@ car::vif(model_reduced_collinearity_FC6000 )
 anova(x, model_reduced_collinearity_FC6000)
 
 # ==============================================================
-# k-FOLD CROSS VALIDATION 
+# K-Fold Cross Validation
 # ==============================================================
 
-train.control <- trainControl(method = "cv", number = 10)
-set.seed(6)
-model_validation <- train(co2_emission ~ euro_standard + transmission_type +
-                            fuel_type + combined_metric + noise_level, data = tr_s_outliers, method = "lm",
-               trControl = train.control)
-summary(model_validation)
-mean((model_validation$finalModel$residuals)^2)
-mean((model_reduced_collinearity_CM_min$residuals)^2)
+library(boot)
+model_validation_CM_5 <- lm(co2_emission ~ euro_standard + transmission_type +
+                              fuel_type + combined_metric + noise_level, data = tr_s_outliers)
+
+glm.fit=glm(model_validation_CM_5 ,data=tr_s_outliers)
+
+cv.err=cv.glm(tr_s_outliers,glm.fit, K = 10)
+cv.err$delta # The K-Fold Cross validation estimate for the test error is approximately 1.102361 (seed=1).
+
+# K-Fold Cross validation for polynomial regressions with orders i=1,2,...,4.
+
+cv.error=rep(0,1)
+for (i in 1:1){
+  glm.fit=glm(co2_emission~euro_standard + transmission_type +
+                fuel_type + combined_metric + noise_level, data = tr_s_outliers)
+  cv.error[i]=cv.glm(tr_s_outliers,glm.fit, K=10)$delta[1]
+}
+cv.error
+# We still see little evidence that using cubic or higher-order polynomial terms leads to lower test error than simply
+
+
+
+library(boot)
+model_validation_CM_2 <- lm(co2_emission ~ combined_metric + fuel_type, data = tr_s_outliers)
+glm.fit=glm(model_validation_CM_2 ,data=tr_s_outliers)
+
+cv.err=cv.glm(tr_s_outliers,glm.fit, K = 10)
+cv.err$delta # The K-Fold Cross validation estimate for the test error is approximately 1.102361 (seed=1).
+
+# K-Fold Cross validation for polynomial regressions with orders i=1,2,...,4.
+
+cv.error=rep(0,1)
+for (i in 1:1){
+  glm.fit=glm(co2_emission ~ combined_metric + fuel_type, data = tr_s_outliers)
+  cv.error[i]=cv.glm(tr_s_outliers,glm.fit, K=10)$delta[1]
+}
+cv.error
+# We still see little evidence that using cubic or higher-order polynomial terms leads to lower test error than simply
+
 # ==============================================================
 # TEST PREDICTION
 # ==============================================================
 set.seed(8)
-y_pred = predict(model_reduced_collinearity_CM, newdata = t_s, interval = 'predict')
+y_pred = predict(model_validation_CM_5$finalModel, newdata = t_s, interval = 'predict')
 y_pred
 
 set.seed(7)
-model_reduced_collinearity_CM_min <- lm(co2_emission ~ fuel_type + combined_metric, data = tr_s_outliers)
 y_pred_step_model = predict(model_reduced_collinearity_CM_min, newdata = t_s, interval = 'predict')
 y_pred
-mean((model_reduced_collinearity_CM_min$residuals)^2)
+mean((t_s$co2_emission - y_pred)^2)
 
 
 
