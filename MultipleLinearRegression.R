@@ -227,27 +227,26 @@ car::vif(model_year)
 # COMBINE METRIC: 
 # ==============================================================
 set.seed(2)
-model_reduced_collinearity_CM <- lm(co2_emission ~ euro_standard + transmission_type +
+model_reduced_collinearity_CM_5 <- lm(co2_emission ~ euro_standard + transmission_type +
              fuel_type + combined_metric + noise_level, data = tr_s_outliers)
 summary(model_reduced_collinearity_CM)
 confint(model_reduced_collinearity_CM, level=.95)
 car::vif(model_reduced_collinearity_CM)
 
-MSE_training_CM = mean((model_reduced_collinearity_CM$residuals)^2)
+MSE_training_CM_5 = mean((model_reduced_collinearity_CM$residuals)^2)
 
 # ==============================================================
 # FUEL COST 6000: 
 # ==============================================================
 model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmission_type +
                                       fuel_type + fuel_cost_6000_miles  + noise_level, data = tr_s_outliers)
+summary(model_reduced_collinearity_FC6000)
+confint(model_reduced_collinearity_FC6000, level=.95)
+car::vif(model_reduced_collinearity_FC6000)
 
-model_reduced_collinearity_FC6000 <- lm(co2_emission ~  fuel_type + combined_metric, data = tr_s_outliers)
-summary(model_reduced_collinearity_FC6000 )
-confint(model_reduced_collinearity_FC6000 , level=.95)
-car::vif(model_reduced_collinearity_FC6000 )
+MSE_training_FC6000 = mean((model_reduced_collinearity_FC6000$residuals)^2)
 
-
-anova(model_reduced_collinearity_CM, model_reduced_collinearity_FC6000)
+anova(model_reduced_collinearity_CM_5, model_reduced_collinearity_FC6000)
 
 # ==============================================================
 # URBAN METRIC: L'analisi si ferma qua perchè fa schifo
@@ -300,33 +299,6 @@ model_reduced_collinearity_CM_2 <- lm(co2_emission ~ fuel_type + combined_metric
 summary(model_reduced_collinearity_CM_2)
 confint(model_reduced_collinearity_CM_2, level=.95)
 MSE_training_CM_2 = mean((model_reduced_collinearity_CM_2$residuals)^2)
-
-# ==============================================================
-# BEST MODEL SELECTION FC6000:  
-# ==============================================================
-set.seed(100)
-x <-regsubsets(co2_emission~yco2_emission ~ euro_standard + transmission_type +
-                 fuel_type + fuel_cost_6000_miles + noise_level, data=tr_s_outliers, nvmax = 7, method = "seqrep")
-summary(x)
-
-
-model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmission_type +
-                                          fuel_type + fuel_cost_6000_miles + noise_level, data = tr_s_high_leverage)
-summary(model_reduced_collinearity_FC6000 )
-confint(model_reduced_collinearity_FC6000 , level=.95)
-car::vif(model_reduced_collinearity_FC6000 )
-
-
-# Engine Capacity ha un intervallo di confidenza stretto quindi lo si può eliminare
-set.seed(100)
-model_reduced_collinearity_FC6000 <- lm(co2_emission ~ euro_standard + transmission_type +
-                                          fuel_type + fuel_cost_6000_miles, data = tr_s_high_leverage)
-summary(model_reduced_collinearity_FC6000 )
-confint(model_reduced_collinearity_FC6000 , level=.95)
-car::vif(model_reduced_collinearity_FC6000 )
-
-
-anova(x, model_reduced_collinearity_FC6000)
 
 # ==============================================================
 # K-Fold Cross Validation
